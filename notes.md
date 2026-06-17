@@ -1910,3 +1910,407 @@ steps:
 pytest tests/ -v
 deepeval test run tests/test_agent_quality.py
 ```
+
+---
+
+## Part G — Technology Choices & Comparisons
+
+Every tool in CallOS was chosen over real alternatives. This section covers what the options were, what we picked, why, and when you'd choose differently. This is the section that makes you dangerous in interviews — anyone can list the stack, but explaining *why* one thing beats another shows you actually understand the trade-offs.
+
+---
+
+### G1. Agent Orchestration — Google ADK vs LangChain vs LangGraph vs CrewAI vs AutoGen
+
+**We chose:** Google ADK 2.2
+
+| Framework | Mental model | Best for | Weakness |
+|---|---|---|---|
+| **Google ADK** | Agents with tools + sub-agents; first-class MCP + A2A | Production Google Cloud deployments, ADK web playground, telephony | Newer, smaller community than LangChain |
+| **LangChain** | Chains of LLM calls + tools + memory | Rapid prototyping, huge ecosystem of integrations | Abstraction leaks; debugging chains is painful; verbose |
+| **LangGraph** | Stateful graph of nodes with explicit edges | Complex multi-step workflows needing loops, human-in-the-loop, branching | Higher learning curve; overkill for simple agent trees |
+| **CrewAI** | Role-playing agents that collaborate on tasks | Simple crew-style delegation; nice for demos | Less control over execution; not production-battle-tested |
+| **AutoGen** | Conversational multi-agent debates | Research workflows, code execution environments | Unpredictable conversation loops; hard to bound |
+| **Semantic Kernel** | SDK-first, enterprise .NET/Python | Microsoft ecosystem, Copilot plug-ins | Heavier SDK, more boilerplate |
+
+**Why ADK:** CallOS is explicitly built as a Google ADK showcase. ADK gives us `adk web` for a live playground UI, `adk deploy cloud_run` for one-command production deployment, first-class MCP toolset support, and A2A protocol — none of the others have all four. For a company deploying voice agents on GCP, ADK is the natural fit.
+
+**When you'd pick differently:**
+- LangGraph → if you need complex stateful graphs with conditional branching (e.g. WealthOS-style finance workflows)
+- CrewAI → quick hackathon demos with role-playing agents
+- LangChain → if you need the broadest integrations ecosystem and speed of experimentation matters more than production readiness
+
+---
+
+### G2. Tool Protocol — MCP vs Custom REST vs OpenAI Function Calling
+
+**We chose:** MCP (Model Context Protocol) for tool servers
+
+| Option | How it works | Pros | Cons |
+|---|---|---|---|
+| **MCP** | stdio or HTTP transport; `list_tools` + `call_tool` handlers; client-agnostic | Framework-agnostic; Claude, ADK, Cursor, VS Code all speak MCP natively | Newer standard; debugging stdio is less obvious |
+| **Custom REST API** | Each tool is a POST endpoint; agent calls via HTTP | Simple; easy to test with curl | Tight coupling between agent and tool server URL schema; no standard discovery |
+| **OpenAI function calling format** | JSON schema per function; model decides when to call | Works well with OpenAI/Groq; well-documented | Vendor-specific; doesn't work directly with Claude or ADK without adapters |
+| **LangChain Tools** | Python classes inheriting `BaseTool` | Works within LangChain ecosystem | Not portable; tied to LangChain |
+
+**Why MCP:** MCP is rapidly becoming the standard for tool interoperability. The same MCP servers we built can be plugged into Claude Desktop, Cursor, VS Code, or any other MCP-aware client without modification. ADK has `MCPToolset` built in. The stdio transport is simple and reliable — one process per server, no port management. For a portfolio, showing MCP means showing you're tracking the actual industry direction.
+
+**The `adk_to_mcp_tool_type` bridge:** ADK's `FunctionTool` objects are converted to MCP tool descriptions via `adk_to_mcp_tool_type()` — this is the same conversion ADK does internally when it uses MCP servers, just exposed for us to use when building the server side.
+
+---
+
+### G3. Agent-to-Agent Protocol — A2A vs Custom REST vs gRPC vs Message Queues
+
+**We chose:** Google A2A Protocol
+
+| Option | Discovery | Async | Standard | Interop |
+|---|---|---|---|---|
+| **A2A** | Agent Card at `/.well-known/agent.json` | Task polling (submit → poll) | Yes — Google spec | Any A2A-aware framework |
+| **Custom REST** | None — caller must know the API | Must design yourself | No | Only your own clients |
+| **gRPC** | Proto file shared out-of-band | Streaming support | Protobuf IDL | Language-agnostic but heavy setup |
+| **Message Queue (RabbitMQ/Kafka)** | None — consumers subscribe | Native async | No | Any queue consumer |
+| **OpenAI Assistants API** | None | Polling | OpenAI-specific | Only OpenAI |
+
+**Why A2A:** A2A gives us two things custom REST doesn't: a standard **discovery mechanism** (the Agent Card tells any orchestrator what this agent can do) and a standard **task lifecycle** (submitted → working → completed/failed). An LangGraph agent or AutoGen agent can call CallOS's `handle-call` skill without knowing it's built on ADK — they just follow the A2A spec. This is what makes multi-framework composition possible.
+
+---
+
+### G4. LLM Routing — LiteLLM vs Direct SDKs vs Portkey vs OpenRouter
+
+**We chose:** LiteLLM for multi-provider routing
+
+| Option | How it works | Pros | Cons |
+|---|---|---|---|
+| **LiteLLM** | Unified API over 100+ LLM providers | One interface for Gemini/Groq/OpenAI; fallbacks; cost tracking | Extra dep; occasionally lags new model releases |
+| **Direct SDKs** | `google.generativeai`, `openai`, `groq` each imported separately | No abstraction layer; maximum control | Provider-switching requires code changes; 3 different async patterns |
+| **Portkey** | LiteLLM-like but with a hosted gateway + observability | Production observability, rate limiting, caching | Hosted service dependency; latency overhead |
+| **OpenRouter** | HTTP gateway supporting many providers | Simple HTTP; no SDK needed | Another external dependency; less control |
+
+**Why LiteLLM:** The project needs to work with GOOGLE_API_KEY → GROQ_API_KEY → OPENAI_API_KEY in priority order. With LiteLLM, `config.get_litellm_model_name()` returns the right model string and the same `litellm.acompletion()` call works for all three. Adding a new provider is a one-line config change. The `LiteLlm()` wrapper for non-Gemini providers inside ADK's `Agent(model=...)` is the specific integration that makes ADK work with Groq.
+
+---
+
+### G5. Fine-Tuning Method — DPO vs GRPO vs PPO vs RLHF vs SFT-only
+
+**We chose:** SFT first, then DPO (primary) + GRPO (fallback)
+
+| Method | Data needed | Reference model | Stability | Best for |
+|---|---|---|---|---|
+| **SFT** (Supervised Fine-Tuning) | (instruction, output) pairs | No | High | Teaching format/style; starting point |
+| **DPO** (Direct Preference Optimization) | (prompt, chosen, rejected) pairs | Yes — KL penalty against SFT ref | High | When you have quality preference data |
+| **GRPO** (Group Relative Policy Optimization) | Prompts only + reward fn | No | Medium | Data-scarce, new domains, cold-start |
+| **PPO** (Proximal Policy Optimization) | Prompts + separate reward model | Yes | Low — complex | When you need a separately trained reward model |
+| **Full RLHF** | Human-labelled preference pairs + reward model training | Yes | Low | Maximum quality; extremely resource-intensive |
+| **ORPO** | (prompt, chosen, rejected) | No reference model needed | High | Simpler alternative to DPO; newer |
+
+**Why SFT → DPO → GRPO:**
+- **SFT first** because you need a base to align from — you can't DPO a randomly initialized model
+- **DPO** because it's stable, well-understood, and we already have high-vs-low scored calls as natural chosen/rejected pairs
+- **GRPO as fallback** because early weeks don't have enough scored calls for DPO pairs; GRPO only needs prompts + the rule-based reward function
+- **Not PPO/RLHF** because training a separate reward model requires even more data and compute than DPO; overkill for a voice agent
+
+**DPO vs GRPO key insight:** DPO is essentially supervised learning on the log-ratio of chosen vs rejected — bounded by KL divergence from the reference. GRPO is online RL — the model generates, gets scored, and updates in the same step. GRPO can discover behaviors DPO would never see because it explores; DPO can only reinforce known good behaviors.
+
+---
+
+### G6. Parameter-Efficient Fine-Tuning — QLoRA vs LoRA vs Full Fine-Tuning vs Adapters
+
+**We chose:** QLoRA (4-bit quantization + LoRA)
+
+| Method | Memory (7B model) | Speed | Quality | Hardware needed |
+|---|---|---|---|---|
+| **Full fine-tuning** | ~112 GB (bf16) | Fastest convergence | Best | 2× A100 80GB minimum |
+| **LoRA** | ~28 GB (bf16) | Fast | Near-full | 1× A100 40GB |
+| **QLoRA** | ~6-8 GB | Slower (quantized matmul) | Near-LoRA | RTX 3050 8GB / Colab T4 |
+| **Adapters (Houlsby)** | Similar to LoRA | Similar | Slightly lower | Similar to LoRA |
+| **Prefix Tuning** | Very low | Fast | Lower for complex tasks | Any consumer GPU |
+
+**Why QLoRA:** The project is designed to run on a local RTX 3050 (8GB VRAM) or free Colab T4 (16GB). QLoRA = `load_in_4bit=True` (cuts base model to ~4GB) + LoRA adapters (adds ~200MB trainable params) = total ~6GB. The quality drop vs full fine-tuning is ~1-3% on most benchmarks — acceptable for a call agent. The key insight: QLoRA lets you fine-tune a 7B model on hardware anyone can access.
+
+**LoRA mechanics:** Instead of updating all W weights, LoRA adds low-rank matrices: `W' = W + BA` where B ∈ R^(d×r), A ∈ R^(r×k), rank r << k. Only B and A are trained (typically r=8-64). At inference, `BA` is merged into W so there's zero latency overhead.
+
+---
+
+### G7. Speech-to-Text — Deepgram vs Whisper vs AssemblyAI vs Google STT vs Azure
+
+**We chose:** Deepgram Nova-3
+
+| Service | Latency | Accuracy (English) | Cost | Streaming | Self-host |
+|---|---|---|---|---|---|
+| **Deepgram Nova-3** | ~200ms | Best-in-class | ~$0.0043/min | Yes | No |
+| **OpenAI Whisper (API)** | ~500ms | Excellent | ~$0.006/min | No (batch only) | Yes (open weights) |
+| **Whisper (local)** | 2-10s on CPU | Excellent | Free | No | Yes |
+| **AssemblyAI** | ~300ms | Very good | ~$0.0055/min | Yes | No |
+| **Google STT** | ~300ms | Very good | ~$0.016/min | Yes | No |
+| **Azure Cognitive** | ~300ms | Very good | ~$0.01/min | Yes | No |
+| **AWS Transcribe** | ~400ms | Good | ~$0.024/min | Yes | No |
+
+**Why Deepgram:** For a real-time voice agent on a live phone call, latency matters more than cost. Deepgram Nova-3 has the lowest TTFB (time-to-first-byte) of any commercial STT, consistently ~200ms. It's also the provider Twilio ConversationRelay recommends explicitly — setting `transcriptionProvider="deepgram"` in the TwiML is a single field. The `smart_format=True` flag auto-adds punctuation and capitalization, which helps the LLM parse the transcript better.
+
+**When you'd pick Whisper:** If you're batch-processing recorded calls (not live), Whisper is excellent and free to self-host. For live calls, Whisper's batch-only API adds too much latency.
+
+---
+
+### G8. Text-to-Speech — ElevenLabs vs OpenAI TTS vs Google TTS vs Azure vs Bark
+
+**We chose:** ElevenLabs Flash v2.5
+
+| Service | TTFB | Quality | Cost | Voices | Cloning |
+|---|---|---|---|---|---|
+| **ElevenLabs Flash v2.5** | ~75ms | Best in class | ~$0.15/1k chars | 1000+ | Yes |
+| **OpenAI TTS (alloy, nova)** | ~300ms | Very good | $0.015/1k chars | 6 fixed | No |
+| **Google TTS (WaveNet)** | ~200ms | Good | ~$0.016/1k chars | 380+ | Yes (Journey) |
+| **Azure TTS (Neural)** | ~200ms | Very good | ~$0.016/1k chars | 400+ | Yes |
+| **Bark (local)** | 5-30s on GPU | Interesting but inconsistent | Free | Unlimited | Yes |
+| **Coqui TTS (local)** | 1-5s | Good | Free | Many | Yes |
+
+**Why ElevenLabs:** For a voice agent on a live phone call, the listener hangs up if they wait more than 1-2 seconds for a response. ElevenLabs Flash v2.5 has ~75ms TTFB — it starts speaking almost instantly. The voice quality is also significantly more natural than alternatives, which matters for sales/support calls where trust is built through voice. The `eleven_flash_v2_5` model is specifically designed for real-time use cases.
+
+**The free plan limitation we hit:** ElevenLabs free tier blocks premade library voices via API (you must use voices from your own account). The error `paid_plan_required: Free users cannot use library voices` is specific to the free tier. Workaround: add voices from the ElevenLabs voice library to your account first.
+
+---
+
+### G9. Structured LLM Output — instructor vs raw JSON mode vs outlines vs guidance vs Marvin
+
+**We chose:** instructor (in `pipeline/scorer.py`)
+
+| Option | How it works | Validation | Retry on failure | Schema from |
+|---|---|---|---|---|
+| **instructor** | Wraps LLM client; adds JSON schema from Pydantic; auto-retries | Pydantic v2 | Yes — sends correction turn | Pydantic BaseModel |
+| **Raw JSON mode** | `response_format={"type": "json_object"}` | Manual `json.loads()` + `Model(**raw)` | No — you must implement | Manual dict parsing |
+| **outlines** | Constrained decoding via regex/grammar | Grammar-level guarantee | N/A (never fails) | Regex or Pydantic |
+| **guidance** | Template-guided generation with `{{gen}}` tags | Grammar-level | N/A | guidance templates |
+| **Marvin** | `@marvin.fn` decorator; LLM-backed Python functions | Pydantic | Yes | Type annotations |
+| **LangChain output parsers** | `PydanticOutputParser` | Pydantic | Via `OutputFixingParser` | Pydantic |
+
+**Why instructor:** instructor is the production standard — it's used at Anthropic, OpenAI, and across the industry. The API is minimal (`response_model=MyModel`), it works with litellm via `instructor.from_litellm()`, and it handles the most common production failure mode (LLM returns slightly malformed JSON) with automatic correction turns. No grammar-level constraints means it works with any provider through litellm.
+
+**Why not outlines/guidance:** These require constraining the *decoding* process, which means you need access to the model's logits — impossible with API-based providers (OpenAI, Groq, Gemini). They only work when you're running the model locally. Great for local GRPO reward functions; wrong tool for an API call.
+
+**The correction turn pattern:** When the LLM returns `{"score": "ninety", ...}` instead of `{"score": 90}`, instructor sends a follow-up: `"That was invalid JSON. Fix it: ValidationError: score must be int"`. The LLM corrects itself. This is the `max_retries=2` parameter.
+
+---
+
+### G10. Embeddings — sentence-transformers vs OpenAI vs Cohere vs Google vs FastEmbed
+
+**We chose:** sentence-transformers `all-MiniLM-L6-v2`
+
+| Option | Dimensions | Cost | Speed (CPU) | Quality | Self-host |
+|---|---|---|---|---|---|
+| **all-MiniLM-L6-v2** | 384 | Free | ~50ms/chunk | Good for English | Yes |
+| **all-mpnet-base-v2** | 768 | Free | ~200ms/chunk | Better, heavier | Yes |
+| **OpenAI text-embedding-3-small** | 1536 | $0.02/1M tokens | API latency | Excellent | No |
+| **OpenAI text-embedding-3-large** | 3072 | $0.13/1M tokens | API latency | Best | No |
+| **Cohere embed-v3** | 1024 | $0.10/1M tokens | API latency | Excellent | No |
+| **Google textembedding-gecko** | 768 | $0.0001/1k chars | API latency | Very good | No |
+| **FastEmbed (Qdrant)** | Varies | Free | Fast (ONNX) | Good | Yes |
+
+**Why all-MiniLM-L6-v2:** The KB is small (tens to hundreds of chunks). API-based embeddings would add network latency on every search and cost money at scale. MiniLM-L6 is 90MB, runs in ~50ms on CPU, produces 384-dim vectors that capture English semantics well enough for product/pricing FAQ retrieval. The same model is used at both index time (`scripts/index_kb.py`) and search time (`kb_agent.py`) — this symmetry is critical; mismatching models produces garbage cosine scores.
+
+**The 384-dim vs 1536-dim trade-off:** Higher dimensions capture more nuance but cost more to store and compute. For a company KB of <10,000 chunks, 384 dims are plenty — the quality bottleneck is the CrossEncoder reranker, not the bi-encoder dimension count.
+
+---
+
+### G11. Reranking — CrossEncoder vs ColBERT vs BM25 vs Cohere Rerank vs no reranking
+
+**We chose:** CrossEncoder `ms-marco-MiniLM-L-6-v2`
+
+| Option | How it works | Accuracy | Speed | Cost | Self-host |
+|---|---|---|---|---|---|
+| **CrossEncoder** | Joint encode (query, doc); full cross-attention | High | Slow (~200ms per pair) | Free | Yes |
+| **ColBERT** | Late interaction: score token-level matches | Very high | Medium | Free | Yes |
+| **BM25** | TF-IDF keyword scoring | Low-medium | Very fast | Free | Yes |
+| **Cohere Rerank** | API-based reranker | Very high | API latency | $1/1k calls | No |
+| **No reranking (bi-encoder only)** | Cosine similarity only | Medium | Fast | Free | Yes |
+| **LLM-as-reranker** | Ask LLM "which is more relevant?" | High | Very slow + expensive | LLM cost | No |
+
+**Why CrossEncoder:** The ms-marco model is specifically trained for (query, passage) relevance scoring on the MS-MARCO dataset — exactly the task of scoring whether a KB chunk answers a caller's question. It's 66MB, CPU-fast, and free. The two-stage design (bi-encoder shortlist → CrossEncoder rerank) is the industry standard pipeline because it balances recall (get all candidates) with precision (rank them correctly).
+
+**Why not Cohere Rerank:** Works excellently but requires an API call and billing per use. For a system that searches KB on every call, that's a per-call API cost that doesn't need to exist when an equivalent local model is available.
+
+**Why not BM25 alone:** BM25 misses synonyms and semantic matches — "cost" vs "price", "how much" vs "pricing". The bi-encoder captures semantics; BM25 is a reasonable first pass but a worse shortlister than a bi-encoder for short FAQ chunks.
+
+---
+
+### G12. LLM Evaluation — DeepEval vs RAGAS vs Promptfoo vs LangSmith vs Giskard
+
+**We chose:** DeepEval (CI gate) + Promptfoo (adversarial red-team)
+
+| Tool | Best for | Pytest native | LLM judge | Adversarial | CI-friendly |
+|---|---|---|---|---|---|
+| **DeepEval** | LLM output quality metrics; CI gate | Yes | Yes | Partial | Yes |
+| **RAGAS** | RAG pipeline metrics (faithfulness, context precision) | No | Yes | No | Harder |
+| **Promptfoo** | Red-teaming; adversarial input testing; YAML-driven | No | Yes | Yes | Yes |
+| **LangSmith** | Tracing + eval in LangChain projects | No | Yes | No | Yes |
+| **Giskard** | Bias, robustness, PII testing | No | Yes | Yes | Harder |
+| **TruLens** | RAG eval; NLP feedback functions | No | Yes | No | Harder |
+
+**Why DeepEval as CI gate:** `pytest`-native means `deepeval test run tests/test_agent_quality.py` integrates directly into `cloudbuild.yaml` as a standard step. The 20 golden scenarios test `AnswerRelevancy` and `Faithfulness` — the two metrics that matter most for a KB-grounded voice agent. If a new adapter makes the agent hallucinate or go off-topic, CI blocks the deploy.
+
+**Why Promptfoo in addition:** Promptfoo covers what DeepEval doesn't — adversarial inputs like jailbreaks, prompt injections, and edge cases. `promptfooconfig.yaml` has 6 red-team scenarios. It requires a running server, so it's a separate step rather than part of the CI pipeline.
+
+**Why RAGAS didn't work:** RAGAS 0.2.6 has a broken import (`langchain_community.chat_models.vertexai` was removed in newer langchain-community). Even after upgrading, the import fails unconditionally at module level. This is a known upstream bug. Since `tests/eval_retrieval.py` doesn't follow the `test_*.py` naming convention, pytest never collects it — so it's safely quarantined.
+
+---
+
+### G13. Database — SQLite vs PostgreSQL+pgvector vs Pinecone vs Weaviate vs Chroma
+
+**We chose:** SQLite locally (aiosqlite), PostgreSQL+pgvector in production (Terraform)
+
+| Option | Vector search | Async | Cost | Setup | Best for |
+|---|---|---|---|---|---|
+| **SQLite (aiosqlite)** | No (LIKE match / JSON embedding) | Yes | Free | Zero setup | Local dev, demos |
+| **PostgreSQL + pgvector** | Native cosine/L2/IP search | Via asyncpg | Cloud SQL cost | Moderate | Production with SQL queries |
+| **Pinecone** | Excellent (purpose-built) | Yes | Free tier → $70/mo | Minimal | Pure vector search at scale |
+| **Weaviate** | Excellent + keyword hybrid | Yes | Self-host or cloud | Moderate | Hybrid search (used in WealthOS) |
+| **Chroma** | Good | Yes | Free | Minimal | Local prototyping |
+| **Qdrant** | Excellent | Yes | Self-host or cloud | Minimal | Production self-hosted |
+
+**Why SQLite locally:** Zero dependencies, zero config, no Docker required, works on every OS. The `aiosqlite` wrapper gives async access with the same interface as asyncpg so swapping to PostgreSQL only changes `db.py` internals. The swap point is explicit: `db.py` has TODO comments at every PostgreSQL swap point.
+
+**The embedding storage trade-off:** SQLite stores embeddings as JSON text (`json.dumps(vector)`). This works but means no native vector similarity search — we load all vectors into Python memory and compute cosine similarity there. For <10,000 chunks this is fast enough (~50ms). At 100,000+ chunks you'd want pgvector's `<=>` operator or a dedicated vector DB.
+
+**Why not Pinecone/Weaviate locally:** They require a running service (Docker or cloud account). The goal is `git clone → pip install → python scripts/init_db.py → works`. Adding a vector DB breaks that.
+
+---
+
+### G14. API Framework — FastAPI vs Flask vs Django vs Starlette vs Litestar
+
+**We chose:** FastAPI
+
+| Framework | Async | Auto docs | Performance | Type hints | WebSocket |
+|---|---|---|---|---|---|
+| **FastAPI** | Native async | Swagger + ReDoc auto-generated | High (Starlette base) | First-class | Yes |
+| **Flask** | Via flask-async or threading | None | Medium | Manual | Via flask-sock |
+| **Django** | Via channels | None | Medium | Manual | Via channels |
+| **Starlette** | Native async | None | Highest | Manual | Yes |
+| **Litestar** | Native async | Auto-generated | High | First-class | Yes |
+
+**Why FastAPI:** Three specific reasons for CallOS:
+1. Native async — ADK's `run_async()` is a coroutine; running it inside Flask would require `asyncio.run()` workarounds
+2. WebSocket support — Twilio ConversationRelay uses WebSocket; FastAPI's `@app.websocket("/ws")` is clean
+3. Auto Swagger docs — `http://localhost:8000/docs` gives a clickable interface to test every endpoint instantly
+
+**Why not Starlette directly:** FastAPI is Starlette + type annotation magic. The overhead of FastAPI vs raw Starlette is negligible; the productivity gain (route decorators, auto validation, auto docs) is real.
+
+---
+
+### G15. Task Scheduling — APScheduler vs Celery vs Airflow vs Prefect vs Temporal
+
+**We chose:** APScheduler `AsyncIOScheduler`
+
+| Tool | Setup complexity | Async | Persistent queue | Best for |
+|---|---|---|---|---|
+| **APScheduler** | Zero (in-process) | Yes (AsyncIO) | No | Simple cron jobs in-process |
+| **Celery** | Redis/RabbitMQ broker required | Via celery-aio | Yes | Task queues; distributed workers |
+| **Airflow** | Docker, separate server | No | Yes | Complex DAG workflows; data pipelines |
+| **Prefect** | Cloud or self-hosted server | Yes | Yes | Modern data pipelines with UI |
+| **Temporal** | Server required | Yes | Yes (durable) | Durable workflow execution (used in WealthOS) |
+
+**Why APScheduler:** The weekly fine-tune job runs once per week on a single machine. There's no need for a distributed task queue, persistent job state, or worker pools. APScheduler runs *inside* the same Python process as the scheduler script — no external service required. `@scheduler.scheduled_job("cron", day_of_week="sun", hour=2, minute=0)` is all the configuration needed. The async scheduler integrates cleanly with the asyncio event loop.
+
+**When you'd pick Celery:** If the fine-tune job had to run on a separate GPU machine from the API server, or if you needed retry-on-failure guarantees that survive process restarts.
+
+---
+
+### G16. HITL Pattern — asyncio.Future vs Database-backed vs Message Queue vs Webhook
+
+**We chose:** asyncio.Future + contextvars
+
+| Pattern | Suspension mechanism | Persistence | Scalability | Complexity |
+|---|---|---|---|---|
+| **asyncio.Future** (our approach) | Coroutine literally pauses | In-memory only | Single process | Low |
+| **Database-backed** | Store "pending" row; poll on resolve | Persistent | Multi-process | Medium |
+| **Message queue** | Publish "waiting" event; consume "response" | Persistent | Distributed | High |
+| **Webhook callback** | Return 202 immediately; POST result later | Stateless | Distributed | Medium |
+
+**Why asyncio.Future:** CallOS runs as a single Cloud Run instance during a call. The coroutine literally suspends (`await asyncio.wait_for(future, timeout=30)`) while the HTTP server stays responsive for other requests (because uvicorn is async). The supervisor POSTs to `/escalation/{id}/respond`, which sets the future, and the suspended coroutine resumes *in the same process*. No external service, no polling, no round-trip overhead.
+
+**The contextvars trick:** Python's `contextvars.ContextVar` is copied to child tasks automatically by `asyncio.create_task()`. So `handle_turn` sets `_call_id_var` and ADK's internal task spawning automatically propagates it to `transfer_to_human` — no explicit argument threading needed.
+
+**The limitation:** In-memory Future dies on process restart and doesn't survive across Cloud Run instances. For production HITL at scale you'd use a database-backed pattern: write a "pending" row, return 202, the supervisor resolves it via API which updates the DB, a background poller picks it up and resumes the (now re-fetched) workflow state.
+
+---
+
+### G17. Telephony — Twilio ConversationRelay vs LiveKit vs Daily.co vs Raw WebRTC
+
+**We chose:** Twilio ConversationRelay
+
+| Option | Setup | Billing | STT built-in | TTS built-in | WebSocket protocol |
+|---|---|---|---|---|---|
+| **Twilio ConversationRelay** | Twilio account | Per-minute | Yes (Deepgram) | Yes (your TTS) | Twilio-specific JSON events |
+| **LiveKit** | Self-host or LiveKit Cloud | Per-minute | No | No | WebRTC + LiveKit SDK |
+| **Daily.co** | Daily account | Per-minute | No | No | WebRTC + Daily SDK |
+| **Raw WebRTC** | Signaling server required | Infra cost | No | No | WebRTC + your protocol |
+| **Bland.ai / Retell.ai** | Their platform | Per-minute | Yes | Yes | REST API only |
+
+**Why Twilio:** ConversationRelay is specifically designed for AI voice agents. You get: phone number provisioning, PSTN routing (real phone calls), built-in Deepgram STT integration, automatic turn detection, and a simple WebSocket protocol. The `/incoming-call` webhook + `/ws` WebSocket pattern means the API server only handles text — Twilio handles all the audio encoding/decoding. The TwiML response is 4 lines of XML.
+
+**The `transcriptionProvider="deepgram"` field:** This tells Twilio to use Deepgram for STT instead of its own engine. The transcripts arrive as WebSocket events with `{"type": "transcript", "transcriptType": "final"}` — our WebSocket handler waits for these.
+
+---
+
+### G18. Cloud Infrastructure — Cloud Run vs GKE vs App Engine vs EC2/Lambda
+
+**We chose:** Cloud Run (via Terraform)
+
+| Option | Scaling | Cold start | Cost | Ops overhead | Best for |
+|---|---|---|---|---|---|
+| **Cloud Run** | Scale to zero; per-request | ~1-3s | Pay per request | Very low | Stateless APIs; burst traffic |
+| **GKE** | Custom autoscaling | None (pods always on) | Node cost (always on) | High | Large stateful workloads |
+| **App Engine** | Auto-scaling | ~1-2s | Instance hours | Low | Simple web apps |
+| **EC2** | Manual or ASG | None | Always-on | High | Full control; stateful |
+| **Lambda** | Scale to zero | ~100ms | Pay per invocation | Very low | Short-lived functions only |
+| **Cloud Run Jobs** | On-demand | ~1-3s | Pay per job | Very low | Batch jobs (fine-tune!) |
+
+**Why Cloud Run:** The API server is stateless (session state is in-memory per request; DB is Cloud SQL). Cloud Run scales to zero when no calls are coming in — zero cost during idle. `adk deploy cloud_run` is a first-class ADK command. The `Dockerfile` + `cloudbuild.yaml` → Cloud Run deploy pipeline is the recommended path in the ADK docs.
+
+**The long-running call problem:** Cloud Run has a 60-minute max request timeout. A live call + HITL escalation waiting 30 seconds is fine. A 90-minute call would need Cloud Run's timeout set to `--timeout=3600`. The HITL 30s timeout is deliberately conservative for exactly this reason.
+
+---
+
+### G19. Infrastructure as Code — Terraform vs Pulumi vs CDK vs Cloud Deployment Manager
+
+**We chose:** Terraform
+
+| Tool | Language | State management | Provider support | Learning curve |
+|---|---|---|---|---|
+| **Terraform** | HCL | Remote state (GCS/S3) | 3000+ providers | Medium |
+| **Pulumi** | TypeScript/Python/Go | Pulumi cloud or self-managed | 150+ providers | Medium |
+| **AWS CDK** | TypeScript/Python | CloudFormation | AWS only | Medium |
+| **GCP CDM** | YAML/Jinja2 | GCP-managed | GCP only | Low |
+| **Ansible** | YAML | None (push-based) | Everything | Low |
+
+**Why Terraform:** Industry standard for multi-cloud IaC. The HCL syntax is declarative and readable — `resource "google_cloud_run_v2_service" "callos_api"` is self-documenting. `terraform plan` shows exactly what will change before applying. Three resource types in `terraform/main.tf` (Cloud Run, Cloud SQL, Memorystore) cover the entire production stack.
+
+**The GCP-specific resources:**
+- `google_cloud_run_v2_service` → the API container
+- `google_sql_database_instance` (PostgreSQL) → `google_redis_instance` → production data layer
+- `google_secret_manager_secret` → DATABASE_URL stored as a secret, not an env var
+
+---
+
+### G20. Summary — All Choices at a Glance
+
+| Category | We chose | Main alternative we rejected | Primary reason |
+|---|---|---|---|
+| Agent framework | Google ADK 2.2 | LangGraph | ADK-native MCP + A2A + `adk web` + `adk deploy` |
+| Tool protocol | MCP | Custom REST | Framework-agnostic; Claude/Cursor/VS Code all speak MCP |
+| Agent communication | A2A protocol | Custom REST | Standard discovery (Agent Card) + task lifecycle |
+| LLM routing | LiteLLM | Direct SDKs | One interface for Gemini/Groq/OpenAI |
+| Primary alignment | DPO | PPO/full RLHF | Stable; uses natural good-vs-bad call pairs |
+| Fallback alignment | GRPO | SFT-only | Data-scarce weeks; no reference model needed |
+| Fine-tuning efficiency | QLoRA | Full fine-tuning | Fits 7B model in 8GB VRAM |
+| STT | Deepgram Nova-3 | Whisper | ~200ms TTFB; Twilio native integration |
+| TTS | ElevenLabs Flash v2.5 | OpenAI TTS | ~75ms TTFB; voice quality for sales calls |
+| Structured output | instructor | Raw JSON mode | Auto-retry on Pydantic validation failure |
+| Bi-encoder embeddings | sentence-transformers MiniLM | OpenAI embeddings | Free; local; zero latency |
+| Reranking | CrossEncoder ms-marco | Cohere Rerank | Free; local; same quality; no API cost per call |
+| CI evaluation | DeepEval | RAGAS | pytest-native; broken RAGAS import |
+| Adversarial testing | Promptfoo | Giskard | YAML-driven; HTTP endpoint based |
+| Vector storage | SQLite JSON (local) | Pinecone | Zero-setup local dev; pgvector in production |
+| API framework | FastAPI | Flask | Native async; auto Swagger; WebSocket support |
+| Task scheduling | APScheduler | Celery | In-process; zero broker dependency |
+| HITL mechanism | asyncio.Future + contextvars | Database polling | Same-process suspend/resume; zero overhead |
+| Telephony | Twilio ConversationRelay | LiveKit | PSTN + Deepgram integration built-in |
+| Cloud compute | Cloud Run | GKE | Scale-to-zero; `adk deploy cloud_run` native |
+| IaC | Terraform | Pulumi | Industry standard; declarative HCL |
