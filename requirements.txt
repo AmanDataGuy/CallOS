@@ -1,0 +1,50 @@
+# ============================================================
+# requirements.txt
+# ------------------------------------------------------------
+# All CallOS dependencies, pinned and grouped by layer.
+#
+# Install with:  pip install -r requirements.txt
+#
+# Grouping mirrors the architecture in CallOS_README.md so it
+# is obvious which layer each dependency belongs to.
+# ============================================================
+
+# ---- ADK / agent orchestration (Module 1-11 of the course) ----
+google-adk==1.18.0            # Google Agent Development Kit — root orchestrator
+litellm==1.86.2               # multi-provider LLM router (Gemini / Groq / Ollama)
+mcp==1.18.0                   # Model Context Protocol — custom tool servers
+
+# ---- API / telephony layer ----
+fastapi==0.124.4              # async backend for the Twilio WebSocket stream
+uvicorn==0.40.0               # ASGI server that runs the FastAPI app
+websockets==15.0.1            # raw WebSocket support for ConversationRelay
+python-dotenv==1.0.1          # loads .env into os.environ at startup
+deepgram-sdk>=3.7,<4          # Deepgram Nova-3 STT (key-gated; stub fallback without key)
+elevenlabs>=1.9,<2            # ElevenLabs Flash v2.5 TTS (key-gated; stub fallback without key)
+
+# ---- data layer ----
+# PostgreSQL + pgvector in production; SQLite locally (see config.py).
+aiosqlite==0.22.1             # async SQLite driver used for local runs
+pydantic==2.12.5              # typed models for tool I/O and scores
+
+# ---- post-call pipeline / fine-tuning ----
+# These are heavy ML deps — only needed to actually run training.
+# They are listed so the pipeline imports resolve; install on the
+# training box (local RTX 3050), not on the Cloud Run API box.
+trl==0.12.1                   # DPO alignment trainer
+transformers==4.46.3          # base model loading for DPO
+peft==0.13.2                  # LoRA adapter loading
+datasets==3.1.0               # dataset wrapper used by RAGAS + TRL
+
+# ---- evaluation framework ----
+deepeval==4.0.0                # CI/CD quality gate (hallucination, tool use)
+ragas==0.2.6                   # KB retrieval faithfulness + context precision
+instructor>=1.7,<2             # structured LLM output with Pydantic + auto-retry
+
+# ---- scheduling / infra ----
+apscheduler==3.10.4           # weekly fine-tune cron trigger
+sentence-transformers==3.3.1  # local embeddings for the KB index
+
+# ---- testing ----
+pytest==8.3.4                 # test runner for tests/
+pytest-asyncio==0.24.0        # async test support
