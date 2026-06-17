@@ -203,6 +203,18 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# CallOS project-specific
+# local SQLite database — never commit live data
+callos.db
+# DeepEval telemetry cache
+.deepeval/
+# staged training datasets (SFT / DPO / GRPO prompts)
+data/
+# fine-tuned LoRA adapter checkpoints
+models/
+# MCP server runtime logs
+mcp/*.log
+
 # Ruff stuff:
 .ruff_cache/
 
