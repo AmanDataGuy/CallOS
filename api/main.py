@@ -101,12 +101,14 @@ async def synthesize_speech(text: str) -> bytes:
     from elevenlabs.client import AsyncElevenLabs
     voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
     client = AsyncElevenLabs(api_key=api_key)
-    audio = await client.text_to_speech.convert(
+    chunks = []
+    async for chunk in client.text_to_speech.convert(
         voice_id=voice_id,
         text=text,
         model_id="eleven_flash_v2_5",
-    )
-    return audio
+    ):
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 # -----------------------------
