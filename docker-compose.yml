@@ -1,0 +1,82 @@
+# ============================================================
+# docker-compose.yml
+# ------------------------------------------------------------
+# Local CallOS stack: Postgres + Redis + API + the 6 MCP servers.
+#
+# What it does:
+#   Brings up every backing service plus the API and all MCP servers
+#   with one `docker compose up`. Postgres/Redis are here for prod
+#   parity; the app defaults to SQLite locally (see config.py).
+#
+# Note: the MCP servers speak stdio, so they run with an open stdin
+# (stdin_open/tty) to stay alive for inspection; in production the
+# ADK agent spawns them on demand via MCPToolset.
+# ============================================================
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: callos
+      POSTGRES_PASSWORD: callos
+      POSTGRES_DB: callos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  # ---- MCP servers (stdio; kept alive for local inspection) ----
+  crm-mcp:
+    build: .
+    command: python mcp/crm_server.py
+    stdin_open: true
+    tty: true
+
+  kb-mcp:
+    build: .
+    command: python mcp/kb_server.py
+    stdin_open: true
+    tty: true
+
+  call-mcp:
+    build: .
+    command: python mcp/call_server.py
+    stdin_open: true
+    tty: true
+
+  calendar-mcp:
+    build: .
+    command: python mcp/calendar_server.py
+    stdin_open: true
+    tty: true
+
+  scorer-mcp:
+    build: .
+    command: python mcp/scorer_server.py
+    stdin_open: true
+    tty: true
+
+  analytics-mcp:
+    build: .
+    command: python mcp/analytics_server.py
+    stdin_open: true
+    tty: true
+
+volumes:
+  pgdata:

@@ -1,0 +1,52 @@
+# ============================================================
+# cloudbuild.yaml
+# ------------------------------------------------------------
+# GCP Cloud Build CI/CD pipeline
+#
+# What it does:
+#   On every push to main: install deps, run the unit/eval tests,
+#   build + push the API image, then deploy it to Cloud Run.
+#
+# How it fits in CallOS:
+#   The eval gate runs here too — a build that fails DeepEval never
+#   ships. Mirrors the README Phase 5 pipeline.
+# ============================================================
+
+steps:
+  # 1. Install dependencies.
+  - name: python:3.12
+    entrypoint: pip
+    args: ["install", "-r", "requirements.txt", "--break-system-packages"]
+
+  # 2. Unit + deterministic tests.
+  - name: python:3.12
+    entrypoint: python
+    args: ["-m", "pytest", "tests/", "-v"]
+
+  # 3. DeepEval CI gate (blocks bad agent behaviour from shipping).
+  - name: python:3.12
+    entrypoint: deepeval
+    args: ["test", "run", "tests/test_agent_quality.py"]
+
+  # 4. Build the API image.
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "gcr.io/$PROJECT_ID/callos-api", "."]
+
+  # 5. Push it to Artifact Registry.
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "gcr.io/$PROJECT_ID/callos-api"]
+
+  # 6. Deploy to Cloud Run.
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - callos-api
+      - --image=gcr.io/$PROJECT_ID/callos-api
+      - --region=us-central1
+      - --platform=managed
+      - --allow-unauthenticated
+
+images:
+  - gcr.io/$PROJECT_ID/callos-api
