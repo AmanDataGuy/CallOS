@@ -1,0 +1,13 @@
+# ============================================================
+# agents/requirements.txt
+# ------------------------------------------------------------
+# ADK expects a requirements.txt inside the agents/ folder so that
+# `adk deploy cloud_run ./agents/` knows what to install in the
+# agent runtime container. Keep this to just what the agents import.
+# ============================================================
+
+google-adk==1.18.0
+litellm==1.86.2
+aiosqlite==0.22.1
+pydantic==2.12.5
+python-dotenv==1.0.1
