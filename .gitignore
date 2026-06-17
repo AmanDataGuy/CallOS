@@ -204,6 +204,8 @@ cython_debug/
 tempCodeRunnerFile.py
 
 # CallOS project-specific
+# local study notes — not for publishing
+notes.md
 # local SQLite database — never commit live data
 callos.db
 # DeepEval telemetry cache
