@@ -1,0 +1,52 @@
+# ============================================================
+# configs/sft_config.yaml
+# ------------------------------------------------------------
+# LLaMA-Factory QLoRA SFT training config
+#
+# What it does:
+#   Defines the supervised fine-tune that runs each week on the
+#   high-scoring call pairs the dataset builder produces.
+#
+# How it fits in CallOS:
+#   scheduler/fine_tune_job.run_sft_training shells out to
+#   `llamafactory-cli train configs/sft_config.yaml`. The DPO pass
+#   (pipeline/dpo_trainer.py) then aligns on top of this adapter.
+#
+# Tuned for a local RTX 3050 6GB — 4-bit quantization + LoRA.
+# (pattern follows ADK/Module 5 - Models local fine-tune mindset)
+# ============================================================
+
+# ---- base model ----
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+
+# ---- method ----
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 16          # rank 16 balances quality vs. 6GB VRAM
+lora_alpha: 32         # 2x rank is the common, stable default
+lora_dropout: 0.05
+lora_target: q_proj,v_proj,k_proj,o_proj
+
+# ---- dataset (staged by dataset_builder -> data/callos_sft.json) ----
+dataset: callos_sft
+dataset_dir: data/
+template: qwen
+
+# ---- output ----
+output_dir: models/adapters/sft/latest
+overwrite_output_dir: true
+
+# ---- training hyperparameters ----
+per_device_train_batch_size: 2     # small batch — fits 6GB
+gradient_accumulation_steps: 4     # effective batch size 8
+learning_rate: 2.0e-4
+num_train_epochs: 3
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+fp16: true
+save_steps: 200
+logging_steps: 10
+
+# ---- quantization (the piece that makes 7B fit on RTX 3050) ----
+quantization_bit: 4

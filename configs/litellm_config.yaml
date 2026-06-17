@@ -1,0 +1,50 @@
+# ============================================================
+# configs/litellm_config.yaml
+# ------------------------------------------------------------
+# LiteLLM multi-provider routing config
+#
+# What it does:
+#   Defines the "fast" model group used for live calls with
+#   latency-based routing and automatic fallback across providers.
+#
+# How it fits in CallOS:
+#   Run `litellm --config configs/litellm_config.yaml` to expose a
+#   single OpenAI-compatible proxy. The live agent / scorer call the
+#   proxy and LiteLLM picks the fastest healthy provider — Gemini
+#   first, Groq as fallback, local Ollama for offline dev.
+#
+# (same multi-provider idea as ADK/Module 5 - Models, via LiteLlm)
+# ============================================================
+
+model_list:
+  # Primary live model — low latency, ADK-native.
+  - model_name: fast
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # Fallback — fast hosted Llama if Gemini latency spikes.
+  - model_name: fast
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+
+  # Offline dev — local Ollama, zero cost, no key.
+  - model_name: fast
+    litellm_params:
+      model: ollama_chat/llama3.2
+      api_base: os.environ/OLLAMA_API_BASE
+
+  # Post-call scoring group (quality over latency).
+  - model_name: scorer
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+router_settings:
+  routing_strategy: latency-based-routing
+  num_retries: 2
+  # 700ms end-to-end voice budget — fail over fast rather than wait.
+  timeout: 30
+  allowed_fails: 2
+  cooldown_time: 30
