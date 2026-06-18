@@ -87,6 +87,34 @@ def _judge_key_present() -> bool:
     return bool(os.environ.get("OPENAI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
 
+def _get_judge_model():
+    """Return the appropriate DeepEval judge model based on available keys."""
+    if os.environ.get("OPENAI_API_KEY"):
+        return None  # DeepEval default (GPT-4o)
+    from deepeval.models import GeminiModel
+    return GeminiModel(model="gemini-2.0-flash")
+
+
+_JUDGE_AVAILABLE: bool | None = None  # cached after first check
+
+
+def _check_judge_reachable() -> bool:
+    """Return True only if the judge LLM actually responds (not just key is set)."""
+    global _JUDGE_AVAILABLE
+    if _JUDGE_AVAILABLE is not None:
+        return _JUDGE_AVAILABLE
+    try:
+        import litellm
+        import asyncio
+        litellm.suppress_debug_info = True
+        model = "openai/gpt-4o-mini" if os.environ.get("OPENAI_API_KEY") else "gemini/gemini-2.0-flash"
+        asyncio.run(litellm.acompletion(model=model, messages=[{"role": "user", "content": "hi"}], max_tokens=1))
+        _JUDGE_AVAILABLE = True
+    except Exception:
+        _JUDGE_AVAILABLE = False
+    return _JUDGE_AVAILABLE
+
+
 @pytest.mark.parametrize("scenario", load_golden_dataset(), ids=lambda s: s["id"])
 def test_agent_response_quality(scenario):
     """Score a golden scenario's reference answer against the rubric.
@@ -102,6 +130,8 @@ def test_agent_response_quality(scenario):
     pytest.importorskip("deepeval")
     if not _judge_key_present():
         pytest.skip("No judge key (OPENAI_API_KEY / GOOGLE_API_KEY) set")
+    if not _check_judge_reachable():
+        pytest.skip("Judge LLM unreachable — quota exhausted or key has no model access")
 
     from deepeval import assert_test
     from deepeval.metrics import AnswerRelevancyMetric, FaithfulnessMetric
@@ -112,7 +142,8 @@ def test_agent_response_quality(scenario):
         actual_output=scenario["expected_output"],
         retrieval_context=scenario.get("context", []),
     )
+    judge = _get_judge_model()
     assert_test(test_case, [
-        AnswerRelevancyMetric(threshold=0.80),
-        FaithfulnessMetric(threshold=0.75),
+        AnswerRelevancyMetric(threshold=0.80, model=judge),
+        FaithfulnessMetric(threshold=0.75, model=judge),
     ])
