@@ -211,6 +211,8 @@ call_data/*.wav
 notes.md
 # local planning file
 plan_ahead.md
+# local training report
+training_report.md
 # local SQLite database — never commit live data
 callos.db
 # DeepEval telemetry cache
