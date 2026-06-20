@@ -203,9 +203,14 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# call dataset WAV files — large binaries, CSV + Readme are committed
+call_data/*.wav
+
 # CallOS project-specific
 # local study notes — not for publishing
 notes.md
+# local planning file
+plan_ahead.md
 # local SQLite database — never commit live data
 callos.db
 # DeepEval telemetry cache
