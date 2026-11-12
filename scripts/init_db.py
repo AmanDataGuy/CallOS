@@ -10,7 +10,7 @@
 #
 # How it fits in CallOS:
 #   Run once before starting the MCP servers or the API. The
-#   schema mirrors the PostgreSQL DDL in CallOS_README.md, with
+#   schema mirrors the PostgreSQL DDL in README.md, with
 #   SQLite-friendly types (TEXT ids, TEXT embedding) so the same
 #   code runs locally with no Postgres.
 #
