@@ -1,0 +1,362 @@
+[
+  {
+    "id": "call_recording_01",
+    "call_type": "Product Inquiry",
+    "turns": [
+      [
+        "Hello, I'm Sarah Miller. I'm calling to inquire about the AC-7892 air conditioner unit. I saw it on your website, and I had a few questions. First, what's the BTU rating? And second, does it come with a remote control, or is that sold separately?",
+        "Hi Sarah, thank you for reaching out. The AC-7892 has a BTU rating of 12,000. It does come with a remote control, so you won't need to purchase that separately. Would you like to know more about its features or pricing?"
+      ],
+      [
+        "That's great to know about the remote control, can you tell me more about the pricing and if there are any current promotions or discounts available for the AC-7892, and also what's the expected delivery time if I were to place an order today?",
+        "The current price of the AC-7892 is $499. We do have a promotion going on right now, which includes a $50 discount. If you order today, you can expect delivery within 3 to 5 business days, depending on your location. Would you like me to guide you through the ordering process or answer any other questions you may have?"
+      ]
+    ],
+    "score": 90,
+    "outcome": "Interested",
+    "lead_status": "hot",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_02",
+    "call_type": "Complaint",
+    "turns": [
+      [
+        "I am extremely dissatisfied with my recent order! I am John Davis, and I'm calling about order number 123456. The FR-4401 refrigerator arrived yesterday, and it's damaged. There's a huge dent on the side, and it's not cooling properly. I want to know what you're going to do about this. I demand a replacement, and I want it delivered as soon as possible. I've been without a working refrigerator for two days now!",
+        "I'm so sorry to hear that, Mr. Davis. I can imagine how frustrating it must be to receive a damaged appliance, especially when you need it urgently. I'd be happy to help you with a replacement - can you please hold for just a moment while I look into this further for you?"
+      ],
+      [
+        "I don't have all day to hold, can you at least tell me what the process is for getting a replacement and how long it's going to take, so I can plan accordingly and get my kitchen back in order?",
+        "I completely understand, Mr. Davis. Generally, for damaged items, we'd need to process a replacement order, which typically takes a few days to a week, depending on our inventory and shipping schedule. I'll do my best to expedite this for you, but let me just check on the details of your order so I can give you a more accurate timeline."
+      ]
+    ],
+    "score": 72,
+    "outcome": "replacement initiated",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_03",
+    "call_type": "Technical Issue",
+    "turns": [
+      [
+        "Hi, this is Maria Rodriguez. I'm having trouble with my LAP-2110 laptop, order number 987654. The Wi-Fi keeps disconnecting, and I can't get a stable internet connection. I've tried restarting it multiple times, and I've checked my router, but everything else is working fine. This is incredibly frustrating; I need this for work. Can you please help me troubleshoot this?",
+        "Hi Maria, sorry to hear that you're having trouble with your laptop. I'd be happy to help you troubleshoot the Wi-Fi issue. Can you tell me what operating system your LAP-2110 is running and when you first started noticing this problem?"
+      ],
+      [
+        "My laptop is running Windows 11, and I first noticed the problem about a week ago, but it's gotten much worse over the past few days. Can you walk me through some specific troubleshooting steps to see if we can resolve this issue without having to send it in for repair?",
+        "Let's try a few things, Maria. Have you tried updating your Wi-Fi drivers or disabling and re-enabling the Wi-Fi adapter in your Device Manager? Sometimes, a simple driver update or reset can resolve connectivity issues. Would you like me to guide you through those steps?"
+      ]
+    ],
+    "score": 72,
+    "outcome": "In Progress",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_04",
+    "call_type": "Compliment",
+    "turns": [
+      [
+        "I just wanted to call and say how pleased I am with the DW-6543 dishwasher I purchased last month. My name is Robert Smith, and the order number is 246801. It's incredibly quiet, and it cleans the dishes perfectly. It's the best dishwasher I've ever owned! The delivery was also very smooth. Thank you for providing such a great product and service.",
+        "Thank you so much, Robert. We really appreciate your kind words about the DW-6543 dishwasher and our delivery service. I'm glad to hear it's meeting your expectations and providing you with great results. Is there anything else I can assist you with today?"
+      ],
+      [
+        "That's great to know that you're happy to hear about my positive experience, I was wondering if there's a way I can share this review on your company's website or social media, as I'd love to let others know about the excellent product and service I received.",
+        "That's very kind of you, Robert. I can provide you with our website's contact information, and you can reach out to our customer feedback team to see how you can share your review. They'll be happy to guide you through the process. Would you like me to provide you with that information?"
+      ]
+    ],
+    "score": 65,
+    "outcome": "Positive feedback",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_05",
+    "call_type": "Order Placement",
+    "turns": [
+      [
+        "Hello, my name is Jessica Brown. I'd like to place an order. I want to order one OV-1357 oven and one MW-8642 microwave. Could you please tell me the total cost, including shipping, and the estimated delivery date? Also, I'd like to pay with Visa. My card number is...\"",
+        "Hi Jessica, I'd be happy to help you with your order. However, I need to let you know that I'm not allowed to take your credit card information over the phone for security reasons. Can I have you hold for just a moment while I check the availability and pricing of the OV-1357 oven and MW-8642 microwave?"
+      ],
+      [
+        "That's completely understandable about the security reasons, I appreciate that. Can you please just confirm the availability of both the oven and the microwave before I proceed with the secure payment process, and also let me know if there are any promotions or discounts currently available?",
+        "I've checked on the items, and both the OV-1357 oven and MW-8642 microwave are currently in stock. Let me just check on any promotions for you. It looks like we have a discount available for purchasing multiple appliances at once, I can go over the details with you after we secure your payment information through our secure system. Would you like to proceed with that?"
+      ]
+    ],
+    "score": 87,
+    "outcome": "Order Confirmed",
+    "lead_status": "hot",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_06",
+    "call_type": "Product Inquiry",
+    "turns": [
+      [
+        "Hi, this is David Wilson. I'm looking at the SPK-9988 speaker system online, and I'm a little confused. The description says it's wireless, but then it also mentions needing a power cord. Can you explain that? Does it need to be plugged in all the time, or does it have a rechargeable battery? Also, what is the range on the wireless connection?",
+        "Hi David, I'd be happy to help clarify. The SPK-9988 speaker system does have a rechargeable battery, but it also comes with a power cord for charging. As for the wireless connection, it typically has a range of around 30 feet, but that can vary depending on your environment. I can check the exact specs if you'd like more details."
+      ],
+      [
+        "That's great to know, thank you for clarifying the wireless range. Can you tell me more about how long the battery lasts on a single charge, and are there any indicators or warnings when it's running low on power?",
+        "The battery life on the SPK-9988 is around 8 to 10 hours on a single charge, but that can vary depending on the volume level and usage. As for the power indicator, yes, it does have a low-battery warning that alerts you when the battery is running low, giving you time to recharge it."
+      ]
+    ],
+    "score": 77,
+    "outcome": "informed",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_07",
+    "call_type": "Complaint",
+    "turns": [
+      [
+        "I'm calling about the HD-2771 hard drive I ordered. This is Linda Garcia, and the order number is 654321. It was supposed to arrive three days ago, and I haven't received any updates. The tracking information online is useless. I need this for my business, and this delay is causing problems. Can you please look into this and tell me where my order is?",
+        "I'm so sorry to hear that, Ms. Garcia. I'd be happy to help you with your order. Let me just check on the status of your HD-2771 hard drive with order number 654321. Can you please hold for just a moment while I look into this for you?"
+      ],
+      [
+        "I don't have a moment to hold, I've already wasted enough time trying to track this down myself, can you just check the status right away and tell me what's going on with my order, is it still going to arrive on time or do I need to make other arrangements?",
+        "I understand your urgency, Ms. Garcia. Let me check on that right away. I'm accessing your order now... (pause) Okay, I've located your order, and I'm going to go ahead and check on the shipping status for you."
+      ]
+    ],
+    "score": 67,
+    "outcome": "issue",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_08",
+    "call_type": "Technical Issue",
+    "turns": [
+      [
+        "Hello, my name is Michael Brown. I need some technical assistance with the ROUT-5678 router I purchased from you. My order number is 345678. I'm trying to set up a guest network, but the option seems to be missing from the settings menu. I've followed the instructions in the manual, but it's not working. Can you walk me through the setup process?",
+        "Hi Michael, sorry to hear you're having trouble with your ROUT-5678 router. I'd be happy to help you with setting up a guest network. Can you tell me what firmware version your router is currently running, and I'll do my best to guide you through the process?"
+      ],
+      [
+        "I checked the manual, but I'm not sure how to find the firmware version, is it something I can find in the router's web interface or do I need to check the box or a sticker on the device itself for that information?",
+        "You should be able to find the firmware version in the router's web interface. Try logging into the router using a web browser, and look for a section like \"About\" or \"Status\" - the firmware version should be listed there. Would you like me to walk you through the login process if you need help with that?"
+      ]
+    ],
+    "score": 67,
+    "outcome": "Support Call",
+    "lead_status": "cold",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_09",
+    "call_type": "Order Placement",
+    "turns": [
+      [
+        "Hi, this is Amanda White. I'd like to place an order for a few items. I need one MON-2345 monitor, one KB-1234 keyboard, and one MOUSE-4567 mouse. Could you please confirm the availability of these items and give me the total price? I'm excited to get these, I've heard great things about them!\"",
+        "Hi Amanda, I'd be happy to help you with that order. Let me just check the availability of those items for you. Can you please hold for just a moment while I check on the MON-2345 monitor, KB-1234 keyboard, and MOUSE-4567 mouse?"
+      ],
+      [
+        "That's great, thank you for checking. While you're looking into the availability, can you also let me know if there are any current promotions or discounts that I might be eligible for on these items?",
+        "I'm checking on that for you now, Amanda. I'll let you know about availability and any potential promotions or discounts that might be available on the MON-2345, KB-1234, and MOUSE-4567. Just a moment, please."
+      ]
+    ],
+    "score": 80,
+    "outcome": "Order placement",
+    "lead_status": "hot",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_10",
+    "call_type": "Compliment",
+    "turns": [
+      [
+        "I'm calling to express my satisfaction with the PR-9876 printer I bought from your company. My name is Christopher Green, and my order number is 876543. It was easy to set up, and the print quality is excellent. I especially appreciate the fast printing speed. It has significantly improved my productivity. Thank you!\"",
+        "Thank you so much, Mr. Green, for taking the time to share your positive experience with the PR-9876 printer. I'm glad to hear it's meeting your expectations and improving your productivity. I'll make sure to pass on your feedback to our team. Is there anything else I can assist you with today?"
+      ],
+      [
+        "That's great to know, I'm happy to hear that my feedback will be passed on, can you also let me know if there are any upcoming promotions or discounts on accessories for the PR-9876, as I'm interested in purchasing some additional ink cartridges and a paper tray.",
+        "I can definitely check on that for you, Mr. Green. Let me see what's available. We do have a promotions page on our website, but I can also check if there are any upcoming deals on accessories for the PR-9876. Would you like me to check on that and get back to you, or would you like to visit our website to see what's currently available?"
+      ]
+    ],
+    "score": 80,
+    "outcome": "Positive",
+    "lead_status": "hot",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_11",
+    "call_type": "Product Inquiry",
+    "turns": [
+      [
+        "Good morning. I am Dr. Emily Carter. I am calling to inquire about the specifications of the MED-7654 medical device. I require detailed information regarding its power consumption, dimensions, and sterilization procedures. Could you please provide me with a technical data sheet?",
+        "Good morning, Dr. Carter. I'd be happy to help you with that. I can provide you with a technical data sheet for the MED-7654, which should include all the details you're looking for, including power consumption, dimensions, and sterilization procedures. Let me just check on that for you, can you please hold for just a moment?"
+      ],
+      [
+        "While I wait, could you also tell me if the MED-7654 is compatible with our current hospital software systems, and if there are any specific requirements for installation or calibration that I should be aware of?",
+        "I can definitely look into that for you, Dr. Carter. Compatibility with your hospital's software systems and installation requirements are usually outlined in the technical data sheet, but I can also check on that specifically for you. I'll make sure to include that information when I get back to you with the data sheet."
+      ]
+    ],
+    "score": 77,
+    "outcome": "follow-up",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_12",
+    "call_type": "Complaint",
+    "turns": [
+      [
+        "I am writing to express my disappointment with the SOFA-123 sofa I recently purchased. My name is Kevin Lee, and the order number is 234567. The color is significantly different from what was advertised online. It's much lighter, and it doesn't match my living room decor. I would like to discuss the possibility of returning this item or receiving a partial refund.",
+        "I'm so sorry to hear that, Kevin. I can imagine how frustrating it must be to have a color mismatch. I'd be happy to help you with a possible return or refund, can you please hold for just a moment while I look up your order details?"
+      ],
+      [
+        "I appreciate your willingness to help, but I'd like to know what specific options are available to me before we move forward - can you tell me if I'm eligible for a full return or if there are any restocking fees I should be aware of?",
+        "Let me see what I can do for you, Kevin. I'll need to check on the details of your order, but generally, we do have a return policy in place. I can offer you some options, but I'll need to review the specifics of your case first, and then I can discuss potential restocking fees with you."
+      ]
+    ],
+    "score": 67,
+    "outcome": "return inquiry",
+    "lead_status": "cold",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_13",
+    "call_type": "Technical Issue",
+    "turns": [
+      [
+        "I'm experiencing a critical issue with the SERVER-8901. This is Jessica Williams, and my order number is 456789. The system is down, and we've lost access to all our data. This is a major problem for our business operations. We need immediate assistance to get this back online. Please connect me with your highest-level technical support team.",
+        "I'm so sorry to hear that, Jessica. I can imagine how critical this must be for your business. Let me go ahead and escalate this issue to our advanced technical support team. I'll get you connected with someone who can help you troubleshoot the SERVER-8901 issue right away."
+      ],
+      [
+        "Can you please provide me with an estimated time frame of when a technician from the advanced support team will be available to assist me, and will they be calling me back or will I need to wait on the line?",
+        "I've escalated your issue, and a technician from our advanced support team will be with you shortly. You should receive a callback within the next 30 minutes to an hour. I'll go ahead and have them call you back, so you won't need to wait on the line."
+      ]
+    ],
+    "score": 72,
+    "outcome": "Escalated",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_14",
+    "call_type": "Order Placement",
+    "turns": [
+      [
+        "Hey, I wanna order that new game console, the GAME-CONSOLE-X, and an extra GAME-CONTROLLER-Y. This is Mike Johnson. You guys got any deals on those right now? And how fast can you ship it to me? I'm hoping to get it by the weekend.",
+        "Hi Mike, thanks for calling. I'd be happy to help you with the GAME-CONSOLE-X and the GAME-CONTROLLER-Y. Let me check on availability and any current promotions we might have. Can you please hold for just a moment while I look into that for you?"
+      ],
+      [
+        "That sounds great, thank you for checking on that. While you're looking, can you also let me know if there are any bundles that include the console and the extra controller, and if that would be a better value for me?",
+        "I'll check on that for you, Mike. Sometimes we do have bundles that can be a better value, so I'll see what options are available. I'll also check the shipping times to make sure we can get it to you by the weekend. Just a few more seconds, please."
+      ]
+    ],
+    "score": 82,
+    "outcome": "Potential Sale",
+    "lead_status": "hot",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_15",
+    "call_type": "Compliment",
+    "turns": [
+      [
+        "I'm just calling to say I'm absolutely blown away by the CAMERA-PRO-1! This is Ashley Perez, and I purchased it under order number 987654. The image quality is incredible, and it's so easy to use. I've taken some amazing photos with it already. Thank you so much for making such a fantastic product! I will definitely recommend this to all my friends.",
+        "Hi Ashley, thank you so much for sharing your wonderful experience with the CAMERA-PRO-1. We're thrilled to hear that you're enjoying the image quality and ease of use. I'd be happy to pass along your compliments to our team. Is there anything else I can assist you with today?"
+      ],
+      [
+        "That's great to hear, I'm glad my feedback will be shared with the team. I was also wondering if you have any workshops or online tutorials that can help me get even more out of my CAMERA-PRO-1, I'd love to learn some new techniques and features.",
+        "We actually have a dedicated support page on our website with tutorials, tips, and tricks for getting the most out of your CAMERA-PRO-1. I can also provide you with a link to some online resources and workshops that might be helpful. Would you like me to send you that information via email?"
+      ]
+    ],
+    "score": 65,
+    "outcome": "positive",
+    "lead_status": "hot",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_16",
+    "call_type": "Product Inquiry",
+    "turns": [
+      [
+        "Hello, my name is Brian Thompson. I have a question about the TABLET-Z. I'm interested in its battery life. What is the typical usage time on a full charge? Also, does it support expandable storage with a microSD card? I couldn't find that information on the website.",
+        "Hi Brian, thanks for calling. For the TABLET-Z, typical usage time on a full charge can vary, but I can check the specs for you. Let me see... (pause) according to our info, you can get around 8-10 hours of usage. I'll also check on the microSD card support for you."
+      ],
+      [
+        "That's great to know about the battery life, can you confirm if the TABLET-Z does support expandable storage with a microSD card, and if so, what's the maximum storage capacity it can handle?",
+        "Yes, the TABLET-Z does support expandable storage with a microSD card. Let me check the maximum capacity... (pause) it can handle up to 512GB of additional storage. Would you like to know more about the tablet or is there something else I can help you with, Brian?"
+      ]
+    ],
+    "score": 90,
+    "outcome": "Qualified Lead",
+    "lead_status": "warm",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_17",
+    "call_type": "Complaint",
+    "turns": [
+      [
+        "I am calling to complain about the Washer-Dryer Combo I purchased. This is Angela Ramirez, and my order number is 765432. It's making an incredibly loud noise, and it's shaking violently during the spin cycle. I'm worried it's going to break down completely. I want a technician to come out and fix this as soon as possible. This is unacceptable for a brand new appliance!\"",
+        "I'm so sorry to hear that, Angela. I can imagine how frustrating and worrying that must be for you. I'd be happy to help you schedule a technician visit to take a look at your Washer-Dryer Combo. Can you please hold for just a moment while I look up your order and check on the next available appointment?"
+      ],
+      [
+        "I don't want to be put on hold for a long time, can you just tell me what options are available for scheduling the technician visit and what information you need from me to move forward with the repair?",
+        "I completely understand, Angela. To schedule a technician visit, I can offer you a few options for appointment times, and I'll need to confirm your address and a contact phone number to move forward. I can also provide you with a reference number for the repair request. Would you like me to go ahead and provide you with some available appointment slots?"
+      ]
+    ],
+    "score": 72,
+    "outcome": "scheduled repair",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_18",
+    "call_type": "Technical Issue",
+    "turns": [
+      [
+        "I need help with the SOFTWARE-SUITE-PRO. I'm Samuel Peterson, and my order number is 543210. I've been trying to install it on my computer for the past three hours, and I keep getting error messages. I've followed all the troubleshooting steps in the help documentation, but nothing seems to work. I'm really tired of dealing with this. Can someone please assist me?",
+        "I'm so sorry to hear you're having trouble with the installation, Mr. Peterson. I'd be happy to help you with that. Can you tell me more about the error messages you're seeing, and I'll do my best to assist you further?"
+      ],
+      [
+        "The error messages are varying, but the most recent one says 'installation failed due to missing dependencies.' I've tried reinstalling and restarting my computer, but that hasn't resolved the issue - can you walk me through a more detailed troubleshooting process to identify what's causing the problem?",
+        "Let me see what I can do to help, Mr. Peterson. I'm going to check on some possible solutions for the 'missing dependencies' error. Can you please confirm what operating system you're using, and I'll try to guide you through some additional troubleshooting steps?"
+      ]
+    ],
+    "score": 67,
+    "outcome": "Support Call",
+    "lead_status": "warm",
+    "tier": "SFT"
+  },
+  {
+    "id": "call_recording_19",
+    "call_type": "Order Placement",
+    "turns": [
+      [
+        "Good afternoon, I'd like to place a business order. My name is Patricia Collins. I need five OFFICE-CHAIR-X5 chairs, two DESK-L-SHAPE-Y7 desks, and three FILING-CABINET-Z9 filing cabinets. Please provide a detailed quote, including bulk order discounts and estimated delivery timeframe. Our company's purchase order number is to be determined.",
+        "Good afternoon, Patricia. I'd be happy to assist you with your business order. I'll go ahead and put together a detailed quote for the five OFFICE-CHAIR-X5 chairs, two DESK-L-SHAPE-Y7 desks, and three FILING-CABINET-Z9 filing cabinets, including any applicable bulk order discounts. Can you please hold for just a moment while I generate the quote?"
+      ],
+      [
+        "While you're generating the quote, can you also confirm if you offer any free shipping or installation services for bulk orders, and if so, what the requirements are to qualify for those services?",
+        "I'll check on the shipping and installation options for you. We do offer free shipping on certain bulk orders, and installation services may also be available depending on your location and order details. I'll include those details in the quote I'm generating, so you'll have all the information you need to review. Just a moment, please, while I finalize everything."
+      ]
+    ],
+    "score": 80,
+    "outcome": "Quote Provided",
+    "lead_status": "hot",
+    "tier": "SFT+DPO"
+  },
+  {
+    "id": "call_recording_20",
+    "call_type": "Compliment",
+    "turns": [
+      [
+        "I'm calling to let you know that I'm very satisfied with the TV-ULTRA-4K-85 television I purchased. This is Charles Evans, and my order number is 135792. The picture quality is stunning, and the sound is excellent. It has truly transformed my home theater experience. Thank you!\"",
+        "Hi Charles, thank you so much for sharing your wonderful experience with the TV-ULTRA-4K-85. I'm glad to hear it's exceeding your expectations and enhancing your home theater experience. I'll make a note of your satisfaction with order number 135792. Is there anything else I can assist you with today?"
+      ],
+      [
+        "No, actually, that's all I needed to do today, just to let someone know how happy I am with the TV, but I was wondering if there are any upcoming promotions or new products that I might be interested in, given my positive experience with this purchase.",
+        "That's great to hear, Charles. I can check on any upcoming promotions or new releases that might interest you. Let me just check our system real quick. We do have a newsletter that announces new products and offers, would you like me to add your email to that list so you can stay updated?"
+      ]
+    ],
+    "score": 65,
+    "outcome": "positive",
+    "lead_status": "warm",
+    "tier": "SFT"
+  }
+]
