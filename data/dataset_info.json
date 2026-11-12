@@ -1,0 +1,14 @@
+{
+  "callos_sft": {
+    "file_name": "callos_sft.json"
+  },
+  "callos_dpo": {
+    "file_name": "dpo_pairs.json",
+    "ranking": true,
+    "columns": {
+      "prompt": "prompt",
+      "chosen": "chosen",
+      "rejected": "rejected"
+    }
+  }
+}
