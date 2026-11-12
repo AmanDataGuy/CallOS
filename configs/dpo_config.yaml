@@ -1,0 +1,56 @@
+# ============================================================
+# configs/dpo_config.yaml
+# ------------------------------------------------------------
+# LLaMA-Factory ORPO preference alignment config
+#
+# What it does:
+#   Runs Odds Ratio Preference Optimization on top of the SFT adapter.
+#   ORPO combines SFT loss + preference loss in a single forward pass
+#   with NO reference model -- halves VRAM vs vanilla DPO.
+#
+# Why ORPO not DPO:
+#   DPO loads two model copies (policy + frozen reference) which
+#   overflows 6GB VRAM with 1.5B in bf16. ORPO needs only one copy.
+#
+# How it fits in CallOS:
+#   Step 2 of fine-tuning (after sft_config.yaml). Preference signal
+#   pushes the model toward high-scoring call patterns and away from bad ones.
+#
+# Tuned for RTX 3050 6GB -- bf16, no quantization, small batch.
+# ============================================================
+
+# ---- base model + SFT adapter ----
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+adapter_name_or_path: models/adapters/sft/latest
+
+# ---- method ----
+stage: orpo
+do_train: true
+finetuning_type: lora
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: q_proj,v_proj,k_proj,o_proj
+
+# ---- dataset ----
+dataset: callos_dpo
+dataset_dir: data/
+template: qwen
+
+# ---- output ----
+output_dir: models/adapters/dpo/latest
+overwrite_output_dir: true
+
+# ---- ORPO hyperparameters ----
+pref_beta: 0.1            # odds ratio penalty weight (same param as DPO beta)
+
+# ---- training hyperparameters ----
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 5.0e-6
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+bf16: true
+save_steps: 200
+logging_steps: 5
