@@ -52,12 +52,11 @@ DATA_DIR = "data"
 AB_TRAFFIC_PCT = 0.05
 
 
-def run_sft_training(sft_pairs: list[dict], week_num: int) -> str:
+def run_sft_training(sft_pairs: list[dict]) -> str:
     """Run QLoRA SFT via LLaMA-Factory and return the adapter path.
 
     Args:
         sft_pairs (list[dict]): instruction/output training pairs.
-        week_num (int): ISO week number for the output path.
 
     Returns:
         str: directory the SFT adapter was written to.
@@ -70,9 +69,9 @@ def run_sft_training(sft_pairs: list[dict], week_num: int) -> str:
     with open(os.path.join(DATA_DIR, "callos_sft.json"), "w", encoding="utf-8") as f:
         json.dump(sft_pairs, f)
 
-    output_dir = f"models/adapters/sft/week_{week_num}"
     subprocess.run(["llamafactory-cli", "train", "configs/sft_config.yaml"], check=True)
-    return output_dir
+    # Must match output_dir in configs/sft_config.yaml.
+    return "models/adapters/sft/latest"
 
 
 def _write_dpo_dataset(dpo_pairs: list[dict]) -> str:
@@ -116,7 +115,7 @@ async def weekly_fine_tune() -> None:
         logger.warning("Insufficient data (%d pairs). Skipping.", len(dataset.sft))
         return
 
-    sft_path = run_sft_training(dataset.sft, week_num)
+    sft_path = run_sft_training(dataset.sft)
 
     # Choose alignment method: DPO when paired data is rich, GRPO otherwise.
     if len(dataset.dpo) >= MIN_DPO_PAIRS:
