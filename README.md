@@ -5,7 +5,7 @@
 **Enterprise AI Voice Agent Platform with a Self-Improving Fine-Tuning Loop**
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![Google ADK](https://img.shields.io/badge/Google_ADK-2.2_Orchestrator-4285F4?style=flat-square&logo=google&logoColor=white)](https://google.github.io/adk-docs/)
+[![Google ADK](https://img.shields.io/badge/Google_ADK-1.18_Orchestrator-4285F4?style=flat-square&logo=google&logoColor=white)](https://google.github.io/adk-docs/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Twilio](https://img.shields.io/badge/Twilio-ConversationRelay-F22F46?style=flat-square&logo=twilio&logoColor=white)](https://twilio.com)
 [![Deepgram](https://img.shields.io/badge/Deepgram-Nova--3_STT-13EF93?style=flat-square)](https://deepgram.com)
@@ -15,7 +15,7 @@
 
 *Live calls → post-call scoring → DPO alignment → weekly fine-tune → better calls. The loop runs itself.*
 
-*8 agents × 6 MCP servers × 28 tools → a voice AI that gets measurably smarter every 7 days.*
+*8 agents × 6 MCP servers × 29 tools → a voice AI that gets measurably smarter every 7 days.*
 
 </div>
 
@@ -25,7 +25,7 @@
 
 A company plugs in their product knowledge base and CRM. CallOS handles inbound support calls end-to-end — transcribing audio in **~150ms**, routing through a multi-agent compliance and sentiment system, retrieving from a company knowledge base via RAG, and synthesizing a voice response in **~75ms** — for a total pipeline latency under **700ms**.
 
-After each call, a post-call intelligence pipeline scores the conversation, classifies the lead, predicts churn risk, and extracts product signal. Every week, an **APScheduler cron** automatically runs a **QLoRA SFT + DPO alignment** fine-tuning cycle on the highest-scoring calls — with a **DeepEval CI gate** that blocks bad adapters from ever reaching production. The agent measurably improves every 7 days with zero human labeling.
+After each call, a post-call intelligence pipeline scores the conversation, classifies the lead, predicts churn risk, and extracts product signal. Every week, an **APScheduler cron** automatically runs a **LoRA SFT + DPO alignment** fine-tuning cycle on the highest-scoring calls — with a **DeepEval CI gate** that blocks bad adapters from ever reaching production. The agent measurably improves every 7 days with zero human labeling.
 
 **Core problem it solves:** Most voice agent deployments are static. They're configured once and decay as products change, objections evolve, and customer language shifts. CallOS is the first open-source platform where the agent learns continuously from its own production traffic through a fully automated, quality-gated fine-tuning loop.
 
@@ -61,14 +61,14 @@ flowchart TD
         HITL["HITL Coordinator<br/>asyncio.Future pause/resume"]:::agent
     end
 
-    subgraph MCP ["6 MCP Servers · 28 Tools (stdio)"]
+    subgraph MCP ["6 MCP Servers · 29 Tools (stdio)"]
         direction LR
         CRM["crm_server · 6 tools"]:::mcp
         KBS["kb_server · 4 tools"]:::mcp
         CALLS["call_server · 5 tools"]:::mcp
         CAL["calendar_server · 3 tools"]:::mcp
         SCR["scorer_server · 4 tools"]:::mcp
-        ANL["analytics_server · 6 tools"]:::mcp
+        ANL["analytics_server · 7 tools"]:::mcp
     end
 
     subgraph POSTCALL ["Post-Call Intelligence Pipeline"]
@@ -82,7 +82,7 @@ flowchart TD
         direction LR
         Filter["Quality Filter<br/>score ≥ 80"]:::finetune
         Dataset["Dataset Builder<br/>SFT + DPO pairs"]:::finetune
-        QLoRA["QLoRA SFT<br/>LLaMA-Factory · RTX 3050"]:::finetune
+        QLoRA["LoRA SFT<br/>LLaMA-Factory · RTX 3050"]:::finetune
         DPO["DPO Alignment<br/>TRL · KL-penalised"]:::finetune
         EvalGate["DeepEval Gate<br/>blocks bad adapters"]:::finetune
         ABDeploy["A/B Deploy<br/>5% traffic split"]:::finetune
@@ -92,7 +92,7 @@ flowchart TD
         direction LR
         DB[("PostgreSQL + pgvector<br/>SQLite locally")]:::data
         Cache[("Redis<br/>in-process dict locally")]:::data
-        Langfuse["Langfuse<br/>traces · cost · evals"]:::obs
+        Langfuse["Langfuse (planned)<br/>traces · cost · evals"]:::obs
     end
 
     Twilio --> Deepgram --> LiveAgent --> ElevenLabs --> Twilio
@@ -132,14 +132,14 @@ flowchart TD
 
 | Server | Tools | Capabilities |
 |:---:|:---:|:---:|
-| `crm_server` | 6 | `get_lead`, `create_lead`, `update_lead`, `log_call`, `get_deal`, `push_to_crm` |
+| `crm_server` | 6 | `get_lead`, `create_lead`, `update_lead`, `log_call_outcome`, `get_deal_stage`, `push_to_crm` |
 | `kb_server` | 4 | `search_kb` (2-stage RAG), `get_faq`, `get_product_info`, `get_pricing` |
 | `call_server` | 5 | Call history, transcript storage, outcome logging, call metadata |
 | `calendar_server` | 3 | Appointment booking, callback scheduling, availability check |
 | `scorer_server` | 4 | Call quality scoring (0–100), metric aggregation, score history |
-| `analytics_server` | 6 | Lead funnel %, 7-day conversion trend, quality leaderboard, churn queries |
+| `analytics_server` | 7 | Lead funnel %, 7-day conversion trend, quality leaderboard, churn queries |
 
-**28 tools across 6 MCP servers — all speak stdio, all independently testable**
+**29 tools across 6 MCP servers — all speak stdio, all independently testable**
 
 </div>
 
@@ -148,7 +148,7 @@ flowchart TD
 ## The Self-Improvement Loop (Core Innovation)
 
 ```
-Week 0  ─── Base Qwen2.5-7B (cold start)
+Week 0  ─── Base Qwen2.5-1.5B-Instruct (cold start)
                │
                ▼
          Live calls accumulate
@@ -167,8 +167,8 @@ Week 0  ─── Base Qwen2.5-7B (cold start)
                │
                ▼
          APScheduler fires Sunday 02:00
-           1. QLoRA SFT on high-quality pairs (LLaMA-Factory, ~3hrs on RTX 3050)
-           2. DPO alignment on preference pairs (TRL, ~1hr)
+           1. LoRA SFT on high-quality pairs (LLaMA-Factory, bf16 on RTX 3050)
+           2. DPO alignment on preference pairs (TRL), or GRPO when pairs are scarce
            3. DeepEval CI gate — hallucination rate, tool-use accuracy
            4. A/B deploy: 5% of live traffic routed to new adapter
            5. 48hr monitoring window → auto-promote or rollback
@@ -179,10 +179,7 @@ Week +1 ─── Agent has measurably better conversion + compliance
 
 The **quality filter** is the critical piece — fine-tuning on raw calls amplifies bad behaviour. The **DPO alignment step** is what separates this from basic SFT: chosen/rejected pairs from scored calls create a preference signal that pushes the model toward successful call patterns and away from failed ones.
 
-```
-[DPO] Quality before: 0.6200
-[DPO] Quality after:  0.7800  (Δ +0.1600)
-```
+**First real run (bootstrap dataset, RTX 3050 6GB):** SFT on 34 pairs, 3 epochs, LoRA r=16 on Qwen2.5-1.5B in bf16, finished in 68 s with train loss 1.28. DPO/ORPO and the before/after quality delta are the next step (see Roadmap).
 
 ---
 
@@ -195,16 +192,16 @@ The **quality filter** is the critical piece — fine-tuning on raw calls amplif
 | **Telephony** | Twilio ConversationRelay WebSocket | Battle-tested enterprise audio streaming; no polling |
 | **STT** | Deepgram Nova-3 (~150ms) | 54.2% lower WER vs competitors; streaming transcription |
 | **TTS** | ElevenLabs Flash v2.5 (~75ms) | Sub-100ms synthesis; voice cloning; 70+ languages |
-| **Agent Orchestration** | Google ADK 2.2 `LlmAgent` + `Runner` | Native MCP support, built-in `InMemorySessionService`, Vertex AI deploy |
+| **Agent Orchestration** | Google ADK 1.18 `LlmAgent` + `Runner` | Native MCP support, built-in `InMemorySessionService`, Vertex AI deploy |
 | **Inter-agent Comms** | A2A (Agent-to-Agent) protocol | Standardized task delegation between agents — escalation, handoff |
 | **Tool Access** | MCP (stdio, 6 servers) | All external data behind a protocol boundary — swap servers without touching agents |
 | **RAG** | sentence-transformers bi-encoder → CrossEncoder reranking | Two-stage retrieval cuts hallucinations on company KB |
 | **Structured Output** | Pydantic v2 + instructor | Auto-retry on schema validation failure; typed tool I/O throughout |
 | **HITL** | `asyncio.Future` + `contextvars` | Real pause/resume on escalation — call stays live while supervisor types |
 | **LLM Routing** | LiteLLM: `GOOGLE → GROQ → OPENAI` | Single swap point; free Groq fallback when Gemini quota exhausted |
-| **Fine-Tuning** | QLoRA SFT (LLaMA-Factory) + DPO (TRL) | QLoRA fits RTX 3050 6GB; DPO aligns on preference pairs from real calls |
+| **Fine-Tuning** | LoRA SFT (LLaMA-Factory) + DPO/GRPO (TRL) | 1.5B in bf16 fits RTX 3050 6GB without bitsandbytes; DPO aligns on preference pairs from real calls |
 | **Evaluation** | DeepEval (CI gate) + RAGAS (RAG) + Promptfoo (red-team) | Three-layer eval: no bad adapter ships, no bad retrieval ships, adversarial safety covered |
-| **Observability** | Langfuse | Per-turn agent traces, cost per call, LLM-as-judge scores in production |
+| **Observability** | Langfuse *(planned, not wired yet)* | Per-turn agent traces, cost per call, LLM-as-judge scores in production |
 | **Scheduling** | APScheduler `AsyncIOScheduler` | Weekly fine-tune cron with zero infra overhead — runs inside the FastAPI process |
 | **Demo UI** | Streamlit (6-stage live simulator) | Visual pipeline walkthrough: STT → LLM → Compliance → Sentiment → Lead Scorer → TTS |
 
@@ -218,24 +215,23 @@ The **quality filter** is the critical piece — fine-tuning on raw calls amplif
 
 | Layer | Technologies |
 |:---:|:---|
-| **Orchestration** | Google ADK 2.2 (`LlmAgent`, `Runner`, `InMemorySessionService`) + Vertex AI Agent Engine |
+| **Orchestration** | Google ADK 1.18 (`LlmAgent`, `Runner`, `InMemorySessionService`) + Vertex AI Agent Engine |
 | **Agent Protocol** | A2A (Agent-to-Agent) — inter-agent task delegation and escalation |
-| **Tool Protocol** | MCP stdio servers — 6 servers, 28 tools, all independently testable |
+| **Tool Protocol** | MCP stdio servers — 6 servers, 29 tools, all independently testable |
 | **Telephony** | Twilio ConversationRelay — WebSocket audio streaming |
 | **STT** | Deepgram Nova-3 — streaming transcription, ~150ms latency |
 | **TTS** | ElevenLabs Flash v2.5 — sub-100ms synthesis, voice cloning |
-| **LLM (live)** | Gemini 2.5 Flash via LiteLLM / Groq `llama-3.3-70b-versatile` (fallback) |
-| **LLM (fine-tuned)** | Qwen2.5-7B + QLoRA — fits RTX 3050 6GB, zero API cost |
+| **LLM (live)** | Gemini Flash via LiteLLM / Groq `llama-3.3-70b-versatile` (fallback) |
+| **LLM (fine-tuned)** | Qwen2.5-1.5B-Instruct + LoRA (bf16) — fits RTX 3050 6GB, zero API cost |
 | **Inference Router** | LiteLLM — multi-provider routing with priority fallback chain |
-| **Fine-Tuning** | LLaMA-Factory (QLoRA SFT) + TRL (DPO + GRPO alignment) |
+| **Fine-Tuning** | LLaMA-Factory (LoRA SFT, optional ORPO) + TRL (DPO + GRPO alignment) |
 | **RAG** | sentence-transformers bi-encoder + CrossEncoder reranking (two-stage retrieval) |
 | **Structured Output** | Pydantic v2 + instructor — auto-retry on validation failure |
 | **Evaluation** | DeepEval (CI gate) · RAGAS (retrieval quality) · Promptfoo (red-teaming) |
-| **Observability** | Langfuse — traces, cost tracking, LLM-as-judge in production |
+| **Observability** | Langfuse — planned |
 | **Scheduling** | APScheduler `AsyncIOScheduler` — weekly fine-tune trigger |
 | **Database** | PostgreSQL 16 + pgvector (production) / SQLite + aiosqlite (local) |
 | **Cache** | Redis (production) / in-process dict pub/sub (local) |
-| **Notifications** | Composio — Gmail + WhatsApp post-call summaries, no OAuth boilerplate |
 | **Backend** | FastAPI — async WebSocket server for Twilio stream |
 | **Demo** | Streamlit — 6-stage live call simulator with real agent runs |
 | **Deployment** | GCP Cloud Run + Vertex AI Agent Engine + Artifact Registry |
@@ -288,6 +284,45 @@ pytest tests/ -v
 
 # 10. Run the DeepEval quality gate
 deepeval test run tests/test_agent_quality.py
+```
+
+---
+
+## Data & Model Artifacts
+
+Only code and small data live in this repo (< 1 MB). Large files live elsewhere:
+
+| What | Where | How to recreate |
+|:---|:---|:---|
+| Call transcripts (`call_data/call_recordings.csv`) | this repo | public dataset by Oleksiy Maliovanyy |
+| Bootstrap training data (`data/callos_sft.json`, `data/dpo_pairs.json`, `data/dataset_info.json`) | this repo | `python scripts/build_initial_dataset.py` (needs an LLM key; caches to `data/build_results.json`) |
+| 20 call recordings (`call_data/*.wav`, ~21 MB) | Hugging Face dataset | not used by code; download into `call_data/` |
+| SFT LoRA adapter (`models/adapters/sft/latest/`, ~28 MB) | Hugging Face model | `llamafactory-cli train configs/sft_config.yaml` |
+
+Train on top of the adapter:
+
+```bash
+llamafactory-cli train configs/sft_config.yaml   # SFT  -> models/adapters/sft/latest
+llamafactory-cli train configs/dpo_config.yaml   # ORPO (one model copy, fits 6 GB)
+python pipeline/dpo_trainer.py                   # or TRL DPO with before/after quality eval
+python scheduler/fine_tune_job.py                # the weekly loop (Sun 02:00)
+```
+
+---
+
+## Project Layout
+
+```
+agents/      ADK root agent + 7 sub/post-call agents
+api/         FastAPI app: Twilio webhook + WebSocket, /test-call, HITL, A2A
+mcp/         6 MCP stdio servers (CRM, KB, calls, calendar, scorer, analytics)
+pipeline/    scorer, dataset builder, DPO/GRPO trainers, DeepEval gate
+scheduler/   APScheduler weekly fine-tune job
+scripts/     init_db, index_kb, build_initial_dataset
+configs/     LiteLLM + LLaMA-Factory (SFT, ORPO) configs
+demo/        Streamlit call simulator
+tests/       deterministic tests + 20 DeepEval golden scenarios
+terraform/   GCP infra (Cloud Run, Cloud SQL, Memorystore, Secret Manager)
 ```
 
 ---
@@ -368,7 +403,7 @@ Three-layer eval stack covering the full lifecycle:
 Development  → RAGAS       KB retrieval quality: faithfulness, context precision
 CI/CD gate   → DeepEval    hallucination rate, tool-use accuracy — blocks bad adapters from deploying
 Red-team     → Promptfoo   adversarial calls: rude callers, jailbreak attempts, edge cases
-Production   → Langfuse    per-call trace, cost per turn, latency, LLM-as-judge score
+Production   → Langfuse    (planned) per-call trace, cost per turn, latency, LLM-as-judge score
 ```
 
 The 20 golden scenarios in `tests/golden_calls.json` span pricing inquiries, angry callers, compliance violations, and hot lead qualification. Every new fine-tuned adapter must pass `deepeval test run` before it receives any live traffic.
@@ -380,7 +415,7 @@ The 20 golden scenarios in `tests/golden_calls.json` span pricing inquiries, ang
 ```
 weekly_fine_tune (APScheduler · Sunday 02:00)
   └── build_training_dataset()    → SFT instruction pairs + DPO chosen/rejected pairs
-  └── run_sft_training()          → QLoRA SFT via LLaMA-Factory (~3hrs · RTX 3050 6GB)
+  └── run_sft_training()          → LoRA SFT via LLaMA-Factory (configs/sft_config.yaml)
   └── if dpo_pairs >= 20:
   │     run_dpo_alignment()       → DPO with KL-penalised reference model (TRL, ~1hr)
   └── else:
@@ -389,7 +424,7 @@ weekly_fine_tune (APScheduler · Sunday 02:00)
   └── cache.set("ab:new_adapter") → A/B at 5% traffic for 48hr monitoring window
 ```
 
-Minimum data gate: **20 calls with score ≥ 80** before any fine-tune runs. Prevents over-fitting on too little data.
+Minimum data gate: **50 SFT pairs** before any fine-tune runs, and **20 DPO pairs** before DPO is used instead of GRPO. Prevents over-fitting on too little data.
 
 ---
 
@@ -451,7 +486,7 @@ Every production component has a zero-config local fallback so the full pipeline
 | Deepgram Nova-3 STT | Stub (returns echo) | `api/main.py: transcribe_audio` |
 | ElevenLabs Flash v2.5 TTS | Stub (returns silence) | `api/main.py: synthesize_speech` |
 | Twilio call | `POST /test-call` | `api/main.py` |
-| Gemini 2.5 Flash | Groq / OpenAI via LiteLLM | `config.py: get_model` |
+| Gemini Flash | Groq / OpenAI via LiteLLM | `config.py: get_model` |
 
 Enable real voice services by setting `DEEPGRAM_API_KEY` and `ELEVENLABS_API_KEY` in `.env`.
 
@@ -465,11 +500,16 @@ Enable real voice services by setting `DEEPGRAM_API_KEY` and `ELEVENLABS_API_KEY
 |:---:|:---:|
 | Core voice loop (Twilio → Deepgram → ADK → ElevenLabs) | ✅ Phase 1 |
 | Post-call scoring + topic extraction + churn prediction | ✅ Phase 2 |
-| QLoRA SFT + DPO/GRPO fine-tuning pipeline | ✅ Phase 3 |
+| LoRA SFT + DPO/GRPO fine-tuning pipeline | ✅ Phase 3 |
 | DeepEval + RAGAS + Promptfoo evaluation framework | ✅ Phase 3 |
 | A2A inter-agent protocol + HITL pause/resume | ✅ Phase 4 |
-| GCP Cloud Run + Vertex AI deployment + Terraform | ✅ Phase 5 |
+| GCP Cloud Run + Vertex AI deployment + Terraform | 🟡 Written, not yet deployed |
 | Streamlit demo (6-stage live call simulator) | ✅ Phase 5 |
+| First SFT run on bootstrap dataset | ✅ Done (34 pairs, loss 1.28) |
+| DPO/ORPO run + measured before/after quality delta | 🔄 Next |
+| DeepEval gate 20/20 with a working judge key | 🔄 Next |
+| Langfuse tracing in `run_agent()` | 🔄 Planned |
+| End-to-end call on a real Twilio number | 🔄 Planned |
 | Multi-tenant company isolation | 🔄 Phase 6 — Planned |
 | Hindi / multilingual support | 🔄 Phase 6 — Planned |
 | Real-time dashboard (Grafana / Streamlit) | 🔄 Phase 6 — Planned |
