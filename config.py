@@ -54,7 +54,7 @@ def get_model():
     """
     # Gemini is ADK-native — pass the model name straight through.
     if os.environ.get("GOOGLE_API_KEY"):
-        return "gemini-2.0-flash"
+        return "gemini-3.8-flash"
 
     # Groq is free and fast — good local fallback.
     if os.environ.get("GROQ_API_KEY"):
@@ -66,7 +66,7 @@ def get_model():
 
     # No key — return Gemini name so imports still succeed. Calls will
     # fail clearly at runtime, which is the desired "set a key" signal.
-    return "gemini-2.0-flash"
+    return "gemini-3.8-flash"
 
 
 def get_litellm_model_name() -> str:
@@ -85,9 +85,9 @@ def get_litellm_model_name() -> str:
         as get_model().
     """
     if os.environ.get("GOOGLE_API_KEY"):
-        return "gemini/gemini-2.0-flash"
+        return "gemini/gemini-3.8-flash"
     if os.environ.get("GROQ_API_KEY"):
         return "groq/llama-3.3-70b-versatile"
     if os.environ.get("OPENAI_API_KEY"):
         return "openai/gpt-4o"
-    return "gemini/gemini-2.0-flash"
+    return "gemini/gemini-3.8-flash"
