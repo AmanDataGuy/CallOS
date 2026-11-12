@@ -17,7 +17,10 @@
 # ============================================================
 
 # ---- base model ----
-model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+# 1.5B fits in 6GB VRAM in bf16 without quantization — avoids bitsandbytes
+# which segfaults on Windows when bitsandbytes CUDA backend fails to load.
+# For 7B: switch model_name_or_path and add quantization_bit: 4 (Linux only).
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 
 # ---- method ----
 stage: sft
@@ -44,9 +47,6 @@ learning_rate: 2.0e-4
 num_train_epochs: 3
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
-fp16: true
+bf16: true
 save_steps: 200
 logging_steps: 10
-
-# ---- quantization (the piece that makes 7B fit on RTX 3050) ----
-quantization_bit: 4
