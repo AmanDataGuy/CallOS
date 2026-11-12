@@ -5,7 +5,7 @@
 #
 # Install with:  pip install -r requirements.txt
 #
-# Grouping mirrors the architecture in CallOS_README.md so it
+# Grouping mirrors the architecture in README.md so it
 # is obvious which layer each dependency belongs to.
 # ============================================================
 
@@ -31,7 +31,7 @@ pydantic==2.12.5              # typed models for tool I/O and scores
 # These are heavy ML deps — only needed to actually run training.
 # They are listed so the pipeline imports resolve; install on the
 # training box (local RTX 3050), not on the Cloud Run API box.
-trl==0.12.1                   # DPO alignment trainer
+trl>=0.14                     # DPO + GRPO trainers (GRPO needs >=0.14)
 transformers==4.46.3          # base model loading for DPO
 peft==0.13.2                  # LoRA adapter loading
 datasets==3.1.0               # dataset wrapper used by RAGAS + TRL
@@ -45,6 +45,9 @@ instructor>=1.7,<2             # structured LLM output with Pydantic + auto-retr
 # ---- scheduling / infra ----
 apscheduler==3.10.4           # weekly fine-tune cron trigger
 sentence-transformers==3.3.1  # local embeddings for the KB index
+
+# ---- demo ----
+streamlit>=1.40               # demo/app.py UI
 
 # ---- testing ----
 pytest==8.3.4                 # test runner for tests/
