@@ -207,18 +207,13 @@ tempCodeRunnerFile.py
 call_data/*.wav
 
 # CallOS project-specific
-# local study notes — not for publishing
-notes.md
-# local planning file
-plan_ahead.md
-# local training report
-training_report.md
 # local SQLite database — never commit live data
 callos.db
 # DeepEval telemetry cache
 .deepeval/
-# staged training datasets (SFT / DPO / GRPO prompts)
-data/
+# weekly re-staged training files (the bootstrap dataset in data/ is committed)
+data/callos_dpo.json
+data/callos_grpo_prompts.json
 # fine-tuned LoRA adapter checkpoints
 models/
 # MCP server runtime logs
@@ -237,3 +232,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# local editor settings
+.claude/settings.local.json
