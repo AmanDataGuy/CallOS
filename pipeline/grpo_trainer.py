@@ -33,9 +33,9 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline.dpo_trainer import EVAL_SCENARIOS, CALL_SYSTEM_PROMPT, eval_quality
+# Same base model as SFT/DPO, or the SFT adapter will not load.
+from pipeline.dpo_trainer import BASE_MODEL, eval_quality
 
-BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 GRPO_LR = 1e-5
 NUM_GENERATIONS = 4   # G completions sampled per prompt (trade-off: diversity vs GPU cost)
 MAX_NEW_TOKENS = 256
@@ -125,6 +125,7 @@ def run_grpo_alignment(sft_adapter_path: str, prompts_path: str, week_num: int) 
     Returns:
         str: directory the GRPO adapter was saved to.
     """
+    import torch
     from peft import PeftModel
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from trl import GRPOConfig, GRPOTrainer
@@ -134,7 +135,7 @@ def run_grpo_alignment(sft_adapter_path: str, prompts_path: str, week_num: int) 
         tokenizer.pad_token = tokenizer.eos_token
 
     base_model = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL, load_in_4bit=True, device_map="auto"
+        BASE_MODEL, torch_dtype=torch.bfloat16, device_map="auto"
     )
     model = PeftModel.from_pretrained(base_model, sft_adapter_path)
 
@@ -150,8 +151,8 @@ def run_grpo_alignment(sft_adapter_path: str, prompts_path: str, week_num: int) 
         gradient_accumulation_steps=8,
         learning_rate=GRPO_LR,
         num_generations=NUM_GENERATIONS,
-        max_new_tokens=MAX_NEW_TOKENS,
-        fp16=True,
+        max_completion_length=MAX_NEW_TOKENS,
+        bf16=True,
         logging_steps=10,
     )
 
