@@ -25,8 +25,9 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Base model the adapters are trained on (fits RTX 3050 in 4-bit).
-BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+# Must match the SFT base model. 1.5B runs on RTX 3050 in bf16 without
+# bitsandbytes (which segfaults on Windows).
+BASE_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 # KL penalty weight — how far DPO may drift from the SFT reference.
 DPO_BETA = 0.1
 # Conservative LR for preference tuning so we nudge, not overwrite.
@@ -169,9 +170,11 @@ def run_dpo_alignment(sft_adapter_path: str, dpo_dataset_path: str, week_num: in
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from trl import DPOConfig, DPOTrainer
 
+    import torch
+
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     base_model = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL, load_in_4bit=True, device_map="auto"
+        BASE_MODEL, torch_dtype=torch.bfloat16, device_map="auto"
     )
     model = PeftModel.from_pretrained(base_model, sft_adapter_path)
 
@@ -187,7 +190,7 @@ def run_dpo_alignment(sft_adapter_path: str, dpo_dataset_path: str, week_num: in
         gradient_accumulation_steps=8,
         learning_rate=DPO_LR,
         beta=DPO_BETA,
-        fp16=True,
+        bf16=True,
     )
 
     trainer = DPOTrainer(
@@ -206,3 +209,14 @@ def run_dpo_alignment(sft_adapter_path: str, dpo_dataset_path: str, week_num: in
     print(f"[DPO] Quality after:  {score_after:.4f}  (Δ {sign}{delta:.4f})")
     print(f"[DPO] Adapter saved to: {output_dir}")
     return output_dir
+
+
+if __name__ == "__main__":
+    import datetime
+
+    week = datetime.date.today().isocalendar()[1]
+    run_dpo_alignment(
+        sft_adapter_path="models/adapters/sft/latest",
+        dpo_dataset_path="data/dpo_pairs.json",
+        week_num=week,
+    )
