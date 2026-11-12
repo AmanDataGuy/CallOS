@@ -296,8 +296,8 @@ Only code and small data live in this repo (< 1 MB). Large files live elsewhere:
 |:---|:---|:---|
 | Call transcripts (`call_data/call_recordings.csv`) | this repo | public dataset by Oleksiy Maliovanyy |
 | Bootstrap training data (`data/callos_sft.json`, `data/dpo_pairs.json`, `data/dataset_info.json`) | this repo | `python scripts/build_initial_dataset.py` (needs an LLM key; caches to `data/build_results.json`) |
-| 20 call recordings (`call_data/*.wav`, ~21 MB) | Hugging Face dataset | not used by code; download into `call_data/` |
-| SFT LoRA adapter (`models/adapters/sft/latest/`, ~28 MB) | Hugging Face model | `llamafactory-cli train configs/sft_config.yaml` |
+| 20 call recordings (`call_data/*.wav`, ~21 MB) | [amanDS5153/callos-calls](https://huggingface.co/datasets/amanDS5153/callos-calls) | not used by code; download into `call_data/` |
+| SFT LoRA adapter (`models/adapters/sft/latest/`, ~28 MB) | [amanDS5153/callos-sft-qwen1.5b](https://huggingface.co/amanDS5153/callos-sft-qwen1.5b) | `llamafactory-cli train configs/sft_config.yaml` |
 
 Train on top of the adapter:
 
