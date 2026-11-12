@@ -92,7 +92,7 @@ def _get_judge_model():
     if os.environ.get("OPENAI_API_KEY"):
         return None  # DeepEval default (GPT-4o)
     from deepeval.models import GeminiModel
-    return GeminiModel(model="gemini-2.0-flash")
+    return GeminiModel(model="gemini-3.8-flash")
 
 
 _JUDGE_AVAILABLE: bool | None = None  # cached after first check
@@ -107,7 +107,7 @@ def _check_judge_reachable() -> bool:
         import litellm
         import asyncio
         litellm.suppress_debug_info = True
-        model = "openai/gpt-4o-mini" if os.environ.get("OPENAI_API_KEY") else "gemini/gemini-2.0-flash"
+        model = "openai/gpt-4o-mini" if os.environ.get("OPENAI_API_KEY") else "gemini/gemini-3.8-flash"
         asyncio.run(litellm.acompletion(model=model, messages=[{"role": "user", "content": "hi"}], max_tokens=1))
         _JUDGE_AVAILABLE = True
     except Exception:
